@@ -1,22 +1,164 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:GtaHeistPlanner.App.ViewModels"
+        xmlns:maps="using:GtaHeistPlanner.Core.Maps"
+        xmlns:controls="using:GtaHeistPlanner.App.Controls"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
+        d:DesignWidth="1280"
+        d:DesignHeight="800"
         x:Class="GtaHeistPlanner.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
+        Width="1280"
+        Height="800"
+        MinWidth="800"
+        MinHeight="520"
+        Background="#11151B"
         Icon="/Assets/avalonia-logo.ico"
-        Title="GtaHeistPlanner.App">
+        Title="GTA Heist Planner — Kortz">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+    <Grid ColumnDefinitions="220,*">
+        <Border Grid.Column="0"
+                Background="#181E26"
+                BorderBrush="#303946"
+                BorderThickness="0,0,1,0"
+                Padding="16">
+            <Grid RowDefinitions="Auto,Auto,*">
+                <TextBlock Text="KORTZ"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#F3C969" />
+                <TextBlock Grid.Row="1"
+                           Margin="0,2,0,14"
+                           Text="Map layers"
+                           Foreground="#98A4B3" />
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding Maps}"
+                         SelectedItem="{Binding SelectedMap}"
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="maps:MapDefinition">
+                            <TextBlock Margin="4,7" Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
 
+        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="20">
+            <StackPanel Orientation="Horizontal" Margin="4,0,0,14" Spacing="10">
+                <TextBlock VerticalAlignment="Center"
+                           Text="KORTZ CENTER"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="#98A4B3" />
+                <TextBlock VerticalAlignment="Center" Text="/" Foreground="#566171" />
+                <TextBlock Text="{Binding SelectedMap.DisplayName}"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="#F1F4F7" />
+            </StackPanel>
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <Border Padding="18"
+                        Background="#0B0E12"
+                        BorderBrush="#303946"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        ClipToBounds="True">
+                    <Grid>
+                        <svg:Svg Path="{Binding SelectedMapAssetUri}" Stretch="Uniform" />
+                        <controls:SecurityOverlayControl
+                            IsVisible="{Binding IsSecurityOverlayVisible}"
+                            Analysis="{Binding SecurityAnalysis}"
+                            Calibration="{Binding CurrentCalibration}"
+                            DiagnosticText="{Binding HoveredMarker, Mode=TwoWay}" />
+                        <Border HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Margin="8"
+                                Padding="8,5"
+                                Background="#D911151B"
+                                CornerRadius="4"
+                                IsVisible="{Binding HasHoveredMarker}">
+                            <TextBlock Text="{Binding HoveredMarker}"
+                                       FontSize="11"
+                                       Foreground="#E5EAF0" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Width="270"
+                        Padding="14"
+                        Background="#181E26"
+                        BorderBrush="#303946"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        IsVisible="{Binding IsSecurityOverlayVisible}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="OVERLAY CALIBRATION"
+                                       FontWeight="Bold"
+                                       Foreground="#F3C969" />
+                            <TextBlock Text="Normalized planner coordinates"
+                                       FontSize="11"
+                                       Foreground="#98A4B3" />
+
+                            <TextBlock Text="Scale X" />
+                            <NumericUpDown Value="{Binding ScaleX}"
+                                           Minimum="-1" Maximum="1"
+                                           Increment="0.0005" FormatString="0.000000" />
+                            <TextBlock Text="Scale Y" />
+                            <NumericUpDown Value="{Binding ScaleY}"
+                                           Minimum="-1" Maximum="1"
+                                           Increment="0.0005" FormatString="0.000000" />
+                            <TextBlock Text="Offset X" />
+                            <NumericUpDown Value="{Binding OffsetX}"
+                                           Minimum="-5" Maximum="5"
+                                           Increment="0.01" FormatString="0.0000" />
+                            <TextBlock Text="Offset Y" />
+                            <NumericUpDown Value="{Binding OffsetY}"
+                                           Minimum="-5" Maximum="5"
+                                           Increment="0.01" FormatString="0.0000" />
+                            <TextBlock Text="Rotation (degrees)" />
+                            <NumericUpDown Value="{Binding RotationDegrees}"
+                                           Minimum="-360" Maximum="360"
+                                           Increment="1" FormatString="0.0" />
+
+                            <CheckBox Content="Flip X" IsChecked="{Binding FlipX}" />
+                            <CheckBox Content="Flip Y" IsChecked="{Binding FlipY}" />
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0">
+                                <Button Content="Fit Data"
+                                        HorizontalContentAlignment="Center"
+                                        Command="{Binding FitDataCommand}" />
+                                <Button Grid.Column="1"
+                                        Content="Reset"
+                                        HorizontalContentAlignment="Center"
+                                        Command="{Binding ResetCommand}" />
+                            </Grid>
+                            <Button Content="Save calibration"
+                                    HorizontalContentAlignment="Center"
+                                    Command="{Binding SaveCalibrationCommand}" />
+                            <TextBlock Text="{Binding SaveStatus}"
+                                       FontSize="11"
+                                       Foreground="#98A4B3"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding CalibrationPath}"
+                                       FontSize="10"
+                                       Foreground="#687484"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
 </Window>
