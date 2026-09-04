@@ -11,18 +11,19 @@ using GtaHeistPlanner.Core.Overlays;
 using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Core.Settings;
 using GtaHeistPlanner.Core.Sewer;
+using GtaHeistPlanner.Core.Security;
 
 namespace GtaHeistPlanner.App.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
     public const string ExteriorFirstFloorMapId = "exterior-firstfloor";
-    private const bool HasAuthoritativeSecurityData = false;
     private readonly MapCalibrationStore _calibrationStore = new();
     private readonly LootSpawnStore _lootSpawnStore = new();
     private readonly ApplicationSettingsStore _settingsStore = new();
     private readonly RecordingDeviceService _recordingDeviceService = new();
     private readonly SewerGraphStore _sewerGraphStore = new();
+    private readonly SecurityDatasetStore _securityDatasetStore = new();
     private readonly MapCalibration _initialCalibration;
     private ApplicationSettings? _settingsSnapshot;
     private LootRunState _lootRun = new([]);
@@ -39,6 +40,12 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowCameraCones))]
     [NotifyPropertyChangedFor(nameof(IsSewerSelected))]
     [NotifyPropertyChangedFor(nameof(IsSewerEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(ShowManualCameras))]
+    [NotifyPropertyChangedFor(nameof(ShowManualGuards))]
+    [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(CurrentMapCameras))]
+    [NotifyPropertyChangedFor(nameof(CurrentMapGuards))]
+    [NotifyPropertyChangedFor(nameof(CurrentMapPatrols))]
     public partial MapDefinition SelectedMap { get; set; } = KortzMapCatalog.DefaultMap;
 
     [ObservableProperty]
@@ -61,9 +68,14 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowSecurityOverlay))]
     [NotifyPropertyChangedFor(nameof(ShowCameras))]
     [NotifyPropertyChangedFor(nameof(ShowCameraCones))]
+    [NotifyPropertyChangedFor(nameof(ShowManualCameras))]
+    [NotifyPropertyChangedFor(nameof(ShowManualGuards))]
+    [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
     [NotifyPropertyChangedFor(nameof(SelectedStageOption))]
     [NotifyPropertyChangedFor(nameof(IsPlanningStage))]
     [NotifyPropertyChangedFor(nameof(IsMapStage))]
+    [NotifyPropertyChangedFor(nameof(IsActivityStage))]
+    [NotifyPropertyChangedFor(nameof(IsPreparationStage))]
     public partial PlannerStage CurrentStage { get; set; } = PlannerStage.Preparation;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedPlayerCountOption))]
@@ -73,11 +85,11 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(MicrophoneStatusText))]
     public partial MicrophoneStatus MicrophoneStatus { get; set; } = MicrophoneStatus.Off;
     [ObservableProperty] public partial bool IsSettingsOpen { get; set; }
-    [ObservableProperty] public partial bool IsMenuOpen { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLootAuthoringEnabled))]
     [NotifyPropertyChangedFor(nameof(ShowDeveloperCalibration))]
     [NotifyPropertyChangedFor(nameof(IsSewerEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
     [ObservableProperty] public partial RecordingDeviceInfo? SelectedRecordingDevice { get; set; }
@@ -100,6 +112,20 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial string? SewerDiagnostic { get; set; }
     [ObservableProperty] public partial int SewerRevision { get; set; }
     [ObservableProperty] public partial string? SewerStartNodeId { get; set; }
+    [ObservableProperty] public partial SecurityEditorTool SecurityEditorTool { get; set; }
+    [ObservableProperty] public partial SecurityCameraViewModel? SelectedSecurityCamera { get; set; }
+    [ObservableProperty] public partial SecurityGuardViewModel? SelectedSecurityGuard { get; set; }
+    [ObservableProperty] public partial SecurityPatrolViewModel? SelectedSecurityPatrol { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedPatrolWaypoint))]
+    public partial int SelectedPatrolWaypointIndex { get; set; } = -1;
+    [ObservableProperty] public partial int SecurityRevision { get; set; }
+    [ObservableProperty] public partial string? SecurityStatus { get; set; }
+    [ObservableProperty] public partial string? VaultCode { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFocusedMap))]
+    [NotifyPropertyChangedFor(nameof(FocusedMapCard))]
+    public partial string? FocusedMapId { get; set; }
 
     public ObservableCollection<MapDefinition> Maps { get; } = [];
     public ObservableCollection<LootMarkerViewModel> LootMarkers { get; } = [];
@@ -107,7 +133,13 @@ public partial class MainViewModel : ViewModelBase
     public ObservableCollection<SewerNodeViewModel> SewerNodes { get; } = [];
     public ObservableCollection<SewerConnection> SewerConnections { get; } = [];
     public ObservableCollection<SewerConnection> HighlightedSewerConnections { get; } = [];
+    public ObservableCollection<SecurityCameraViewModel> SecurityCameras { get; } = [];
+    public ObservableCollection<SecurityGuardViewModel> SecurityGuards { get; } = [];
+    public ObservableCollection<SecurityPatrolViewModel> SecurityPatrols { get; } = [];
+    public ObservableCollection<MapCardViewModel> VisibleMapCards { get; } = [];
+    public ObservableCollection<PatrolAssignmentViewModel> SelectedGuardPatrolAssignments { get; } = [];
     public IReadOnlyList<SewerTurn> SewerTurns { get; } = Enum.GetValues<SewerTurn>();
+    public IReadOnlyList<SecurityEditorTool> SecurityEditorTools { get; } = Enum.GetValues<SecurityEditorTool>();
     public IReadOnlyList<PlayerCountOption> PlayerCountOptions { get; } =
     [
         new(1, "Solo"), new(2, "2"), new(3, "3"), new(4, "4"),
@@ -130,6 +162,11 @@ public partial class MainViewModel : ViewModelBase
     public bool IsLootStage => ShowLootOverlay;
     public bool IsPlanningStage => CurrentStage == PlannerStage.Planning;
     public bool IsMapStage => !IsPlanningStage;
+    public bool IsActivityStage => CurrentStage == PlannerStage.HeistActivity;
+    public bool IsPreparationStage => CurrentStage == PlannerStage.Preparation;
+    public bool HasSelectedPatrolWaypoint => SelectedSecurityPatrol is not null && SelectedPatrolWaypointIndex >= 0;
+    public bool HasFocusedMap => FocusedMapId is not null;
+    public MapCardViewModel? FocusedMapCard => VisibleMapCards.FirstOrDefault(card => card.Map.Id == FocusedMapId);
     public bool IsSewerSelected => SelectedMap.Id == "sewer";
     public bool IsSewerEditorVisible => DeveloperMode && IsSewerSelected;
     public LootPlanningSummary PlanningSummary => LootPlanningSummaryCalculator.Calculate(
@@ -170,37 +207,37 @@ public partial class MainViewModel : ViewModelBase
     }
     // Extracted security data remains disabled until replaced with map-scoped manual data.
     public bool IsSecurityOverlayVisible => false;
-    public bool ShowSecurityOverlay => HasAuthoritativeSecurityData &&
-        (CurrentPolicy.AllowsOverlay(OverlayType.ExteriorGuards, SelectedMap.Id) ||
-         CurrentPolicy.AllowsOverlay(OverlayType.InteriorGuards, SelectedMap.Id));
-    public bool ShowCameras => HasAuthoritativeSecurityData &&
-        (CurrentPolicy.AllowsOverlay(OverlayType.ExteriorCameras, SelectedMap.Id) ||
-         CurrentPolicy.AllowsOverlay(OverlayType.InteriorCameras, SelectedMap.Id));
-    public bool ShowCameraCones => ShowCameras;
+    public bool ShowSecurityOverlay => false;
+    public bool ShowCameras => false;
+    public bool ShowCameraCones => false;
+    public bool ShowManualGuards => CurrentPolicy.AllowsOverlay(
+        SelectedMap.Category == MapCategory.Exterior ? OverlayType.ExteriorGuards : OverlayType.InteriorGuards, SelectedMap.Id);
+    public bool ShowManualCameras => CurrentPolicy.AllowsOverlay(
+        SelectedMap.Category == MapCategory.Exterior ? OverlayType.ExteriorCameras : OverlayType.InteriorCameras, SelectedMap.Id);
+    public bool IsSecurityEditorVisible => DeveloperViewPolicy.CanAuthorSecurity(DeveloperMode, CurrentStage);
+    public IEnumerable<SecurityCameraViewModel> CurrentMapCameras => SecurityCameras.Where(item => item.MapId == SelectedMap.Id);
+    public IEnumerable<SecurityGuardViewModel> CurrentMapGuards => SecurityGuards.Where(item => item.MapId == SelectedMap.Id);
+    public IEnumerable<SecurityPatrolViewModel> CurrentMapPatrols => SecurityPatrols.Where(item => item.MapId == SelectedMap.Id);
     public bool HasHoveredMarker => !string.IsNullOrEmpty(HoveredMarker);
     public bool HasSelectedLoot => SelectedLoot is not null;
     public string BuyersRequestStatus =>
         $"Buyer's Request: {_lootRun.BuyersRequestCount} / {LootRunState.BuyersRequestLimit} identified";
-    public SecurityAnalysis SecurityAnalysis { get; }
-    public CameraOverlayData CameraData { get; }
     public string CalibrationPath => _calibrationStore.FilePath;
     public string LootLayoutPath => _lootSpawnStore.FilePath;
     public string SettingsPath => _settingsStore.FilePath;
     public string SewerGraphPath => _sewerGraphStore.FilePath;
+    public string SecurityDataPath => _securityDatasetStore.FilePath;
 
     public MainViewModel()
     {
         LoadSettings();
         ApplyStagePolicy();
-        SecurityAnalysis = SecurityAnalysisLoader.LoadKortz();
-        CameraData = CameraOverlayDataLoader.LoadKortzExterior();
-        if (CameraData.MapId != ExteriorFirstFloorMapId)
-            throw new InvalidDataException($"Camera data targets '{CameraData.MapId}', expected '{ExteriorFirstFloorMapId}'.");
-        _initialCalibration = FitSecurityData();
+        _initialCalibration = new MapCalibration();
         CurrentCalibration = _calibrationStore.Load(ExteriorFirstFloorMapId) ?? _initialCalibration;
         LoadCalibrationFields(CurrentCalibration);
         LoadLootLayout();
         LoadSewerGraph();
+        LoadSecurityDataset();
     }
 
     [RelayCommand]
@@ -228,6 +265,10 @@ public partial class MainViewModel : ViewModelBase
     {
         HoveredMarker = null;
         SelectedLoot = null;
+        SelectedSecurityCamera = null;
+        SelectedSecurityGuard = null;
+        SelectedSecurityPatrol = null;
+        SelectedPatrolWaypointIndex = -1;
         SaveStatus = null;
     }
 
@@ -251,8 +292,27 @@ public partial class MainViewModel : ViewModelBase
     partial void OnDeveloperModeChanged(bool value)
     {
         if (!value)
+        {
             IsLootEditMode = false;
+            SecurityEditorTool = SecurityEditorTool.Select;
+        }
     }
+
+    partial void OnSelectedSecurityGuardChanged(SecurityGuardViewModel? oldValue, SecurityGuardViewModel? newValue)
+    {
+        if (oldValue is not null)
+        {
+            oldValue.PatrolIds.Clear();
+            foreach (var assignment in SelectedGuardPatrolAssignments.Where(item => item.IsAssigned))
+                oldValue.PatrolIds.Add(assignment.Patrol.Id);
+        }
+        SelectedGuardPatrolAssignments.Clear();
+        if (newValue is null) return;
+        foreach (var patrol in SecurityPatrols.Where(item => item.MapId == newValue.MapId))
+            SelectedGuardPatrolAssignments.Add(new PatrolAssignmentViewModel(patrol, newValue.PatrolIds.Contains(patrol.Id)));
+    }
+
+    partial void OnSelectedSecurityPatrolChanged(SecurityPatrolViewModel? value) => SelectedPatrolWaypointIndex = -1;
 
     partial void OnMicrophoneEnabledChanged(bool value)
     {
@@ -288,12 +348,8 @@ public partial class MainViewModel : ViewModelBase
             DeveloperMode = DeveloperMode,
         };
         RefreshRecordingDevices();
-        IsMenuOpen = false;
         IsSettingsOpen = true;
     }
-
-    [RelayCommand]
-    private void ToggleMenu() => IsMenuOpen = !IsMenuOpen;
 
     [RelayCommand]
     private void CloseSettings()
@@ -382,6 +438,10 @@ public partial class MainViewModel : ViewModelBase
     private void ResetHeist()
     {
         _lootRun.ResetLootState();
+        VaultCode = null;
+        foreach (var camera in SecurityCameras) camera.IsActive = true;
+        foreach (var guard in SecurityGuards) guard.IsActive = true;
+        foreach (var patrol in SecurityPatrols) patrol.IsActive = true;
         RefreshLootState();
         LootStatus = "Heist loot state reset; permanent layout unchanged.";
     }
@@ -537,13 +597,237 @@ public partial class MainViewModel : ViewModelBase
         SewerNodes.Select(node => node.ToDomain()).ToList(),
         SewerConnections.ToList());
 
+    private void LoadSecurityDataset()
+    {
+        var dataset = _securityDatasetStore.Load();
+        foreach (var camera in dataset.Cameras)
+        {
+            var model = new SecurityCameraViewModel(camera);
+            model.PropertyChanged += OnSecurityObjectChanged;
+            SecurityCameras.Add(model);
+        }
+        foreach (var guard in dataset.Guards)
+        {
+            var model = new SecurityGuardViewModel(guard);
+            model.PropertyChanged += OnSecurityObjectChanged;
+            SecurityGuards.Add(model);
+        }
+        foreach (var patrol in dataset.Patrols)
+        {
+            var model = new SecurityPatrolViewModel(patrol);
+            model.PropertyChanged += OnSecurityObjectChanged;
+            SecurityPatrols.Add(model);
+        }
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void PlaceSecurityObject(MapPoint point)
+    {
+        if (!IsSecurityEditorVisible) return;
+        if (SecurityEditorTool == SecurityEditorTool.Camera)
+        {
+            var id = NextSecurityId("camera", SecurityCameras.Select(item => item.Id));
+            var camera = new SecurityCameraViewModel(new(id, SelectedMap.Id, id, point.X, point.Y, 0, 55, .18));
+            camera.PropertyChanged += OnSecurityObjectChanged;
+            SecurityCameras.Add(camera);
+            SelectedSecurityCamera = camera;
+            SelectedSecurityGuard = null;
+        }
+        else if (SecurityEditorTool == SecurityEditorTool.Guard)
+        {
+            var id = NextSecurityId("guard", SecurityGuards.Select(item => item.Id));
+            var guard = new SecurityGuardViewModel(new(id, SelectedMap.Id, id, point.X, point.Y, []));
+            guard.PropertyChanged += OnSecurityObjectChanged;
+            SecurityGuards.Add(guard);
+            SelectedSecurityGuard = guard;
+            SelectedSecurityCamera = null;
+        }
+        else if (SecurityEditorTool == SecurityEditorTool.PatrolWaypoint && SelectedSecurityPatrol?.MapId == SelectedMap.Id)
+        {
+            SelectedSecurityPatrol.Waypoints.Add(new PatrolWaypoint(point.X, point.Y));
+        }
+        RefreshSecurityMapCollections();
+        SecurityRevision++;
+        SecurityStatus = "Unsaved security changes.";
+    }
+
+    [RelayCommand]
+    private void MoveSecurityObject(SecurityMarkerMove move)
+    {
+        if (!IsSecurityEditorVisible) return;
+        if (move.Kind == "camera" && SecurityCameras.FirstOrDefault(item => item.Id == move.Id) is { } camera)
+        { camera.X = move.X; camera.Y = move.Y; }
+        if (move.Kind == "guard" && SecurityGuards.FirstOrDefault(item => item.Id == move.Id) is { } guard)
+        { guard.X = move.X; guard.Y = move.Y; }
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void SelectSecurityCamera(string id)
+    {
+        if (!IsSecurityEditorVisible) return;
+        SelectedSecurityCamera = SecurityCameras.FirstOrDefault(item => item.Id == id);
+        SelectedSecurityGuard = null;
+    }
+
+    [RelayCommand]
+    private void SelectSecurityGuard(string id)
+    {
+        if (!IsSecurityEditorVisible) return;
+        SelectedSecurityGuard = SecurityGuards.FirstOrDefault(item => item.Id == id);
+        SelectedSecurityCamera = null;
+    }
+
+    [RelayCommand]
+    private void NewSecurityPatrol()
+    {
+        if (!IsSecurityEditorVisible) return;
+        var id = NextSecurityId("patrol", SecurityPatrols.Select(item => item.Id));
+        var patrol = new SecurityPatrolViewModel(new(id, SelectedMap.Id, id, []));
+        patrol.PropertyChanged += OnSecurityObjectChanged;
+        SecurityPatrols.Add(patrol);
+        SelectedSecurityPatrol = patrol;
+        SecurityEditorTool = SecurityEditorTool.PatrolWaypoint;
+        RefreshSecurityMapCollections();
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedCamera()
+    {
+        if (!IsSecurityEditorVisible || SelectedSecurityCamera is null) return;
+        SecurityCameras.Remove(SelectedSecurityCamera);
+        SelectedSecurityCamera = null;
+        RefreshSecurityMapCollections();
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedGuard()
+    {
+        if (!IsSecurityEditorVisible || SelectedSecurityGuard is null) return;
+        SecurityGuards.Remove(SelectedSecurityGuard);
+        SelectedSecurityGuard = null;
+        RefreshSecurityMapCollections();
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedPatrol()
+    {
+        if (!IsSecurityEditorVisible || SelectedSecurityPatrol is null) return;
+        var id = SelectedSecurityPatrol.Id;
+        SecurityPatrols.Remove(SelectedSecurityPatrol);
+        foreach (var guard in SecurityGuards) guard.PatrolIds.Remove(id);
+        SelectedSecurityPatrol = null;
+        RefreshSecurityMapCollections();
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void SaveSecurityDataset()
+    {
+        if (!IsSecurityEditorVisible) return;
+        if (SelectedSecurityGuard is not null)
+            OnSelectedSecurityGuardChanged(SelectedSecurityGuard, SelectedSecurityGuard);
+        try
+        {
+            _securityDatasetStore.Save(new(
+                SecurityCameras.Select(item => item.ToDomain()).ToList(),
+                SecurityGuards.Select(item => item.ToDomain()).ToList(),
+                SecurityPatrols.Select(item => item.ToDomain()).ToList()));
+            SecurityStatus = "Security dataset saved.";
+        }
+        catch (InvalidDataException exception) { SecurityStatus = exception.Message; }
+    }
+
+    [RelayCommand]
+    private void SelectPatrolWaypoint(SecurityWaypointSelection selection)
+    {
+        if (!IsSecurityEditorVisible) return;
+        SelectedSecurityPatrol = SecurityPatrols.FirstOrDefault(item => item.Id == selection.PatrolId);
+        SelectedPatrolWaypointIndex = SelectedSecurityPatrol is not null ? selection.Index : -1;
+        SecurityRevision++;
+    }
+
+    [RelayCommand]
+    private void MovePatrolWaypoint(SecurityWaypointMove move)
+    {
+        if (!IsSecurityEditorVisible) return;
+        var patrol = SecurityPatrols.FirstOrDefault(item => item.Id == move.PatrolId);
+        if (patrol is null) return;
+        var updated = PatrolRouteEditor.Move(patrol.Waypoints, move.Index, new(move.X, move.Y));
+        patrol.Waypoints.Clear();
+        foreach (var waypoint in updated) patrol.Waypoints.Add(waypoint);
+        SelectedSecurityPatrol = patrol;
+        SelectedPatrolWaypointIndex = move.Index;
+        SecurityRevision++;
+        SecurityStatus = "Unsaved patrol waypoint change.";
+    }
+
+    [RelayCommand]
+    private void DeleteSelectedPatrolWaypoint()
+    {
+        if (!IsSecurityEditorVisible || SelectedSecurityPatrol is null || SelectedPatrolWaypointIndex < 0) return;
+        var updated = PatrolRouteEditor.Delete(SelectedSecurityPatrol.Waypoints, SelectedPatrolWaypointIndex);
+        SelectedSecurityPatrol.Waypoints.Clear();
+        foreach (var waypoint in updated) SelectedSecurityPatrol.Waypoints.Add(waypoint);
+        SelectedPatrolWaypointIndex = -1;
+        SecurityRevision++;
+        SecurityStatus = "Patrol waypoint deleted; adjacent segments reconnected. Save to persist.";
+    }
+
+    [RelayCommand]
+    private void SetVaultCode(string? code) => VaultCode = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
+
+    [RelayCommand]
+    private void FocusMap(string mapId)
+    {
+        var card = VisibleMapCards.FirstOrDefault(item => item.Map.Id == mapId);
+        if (card is null) return;
+        SelectedMap = card.Map;
+        FocusedMapId = mapId;
+    }
+
+    [RelayCommand]
+    private void ExitMapFocus() => FocusedMapId = null;
+
+    private void OnSecurityObjectChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        SecurityRevision++;
+        SecurityStatus = "Unsaved security changes.";
+    }
+
+    private void RefreshSecurityMapCollections()
+    {
+        OnPropertyChanged(nameof(CurrentMapCameras));
+        OnPropertyChanged(nameof(CurrentMapGuards));
+        OnPropertyChanged(nameof(CurrentMapPatrols));
+    }
+
+    private string NextSecurityId(string kind, IEnumerable<string> existing)
+    {
+        var ids = existing.ToHashSet(StringComparer.Ordinal);
+        var sequence = 1;
+        string id;
+        do id = $"{SelectedMap.Id}-{kind}-{sequence++:00}"; while (ids.Contains(id));
+        return id;
+    }
+
     private void ApplyStagePolicy()
     {
         var policy = CurrentPolicy;
         var selectedId = SelectedMap?.Id;
+        FocusedMapId = null;
         Maps.Clear();
+        foreach (var card in VisibleMapCards) card.Dispose();
+        VisibleMapCards.Clear();
         foreach (var map in KortzMapCatalog.Maps.Where(map => policy.AllowsMap(map.Id)))
+        {
             Maps.Add(map);
+            VisibleMapCards.Add(new MapCardViewModel(this, map));
+        }
 
         if (selectedId is null || !policy.AllowsMap(selectedId))
             SelectedMap = Maps.First();
@@ -636,12 +920,7 @@ public partial class MainViewModel : ViewModelBase
 
     private MapCalibration FitSecurityData()
     {
-        var points = SecurityAnalysis.SecurityScenarioPoints
-            .Select(point => new MapPoint(point.Position.X, point.Position.Y))
-            .Concat(SecurityAnalysis.GuardChains.Where(chain => chain.ChainIndex == 7)
-                .SelectMany(chain => chain.Nodes)
-                .Select(node => new MapPoint(node.Position.X, node.Position.Y)));
-        return MapCalibrationFitter.Fit(points, 0.1);
+        return _initialCalibration;
     }
 
     private void LoadCalibrationFields(MapCalibration calibration)

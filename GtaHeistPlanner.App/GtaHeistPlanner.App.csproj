@@ -22,6 +22,7 @@
                       Link="Assets\icons\truckcargo.png" />
     <AvaloniaResource Include="Data\kortz\kortz_loot_spawns.json" />
     <AvaloniaResource Include="Data\kortz\kortz_sewer_graph.json" />
+    <AvaloniaResource Include="Data\kortz\kortz_security.json" />
     <Content Include="Data\kortz\kortz_exterior_cameras.json"
              CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\analysis\kortz\kortz_museum.analysis.json"

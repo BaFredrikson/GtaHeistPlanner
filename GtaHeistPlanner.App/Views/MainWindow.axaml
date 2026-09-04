@@ -2,6 +2,7 @@
         xmlns:vm="using:GtaHeistPlanner.App.ViewModels" xmlns:models="using:GtaHeistPlanner.App.Models"
         xmlns:maps="using:GtaHeistPlanner.Core.Maps" xmlns:loot="using:GtaHeistPlanner.Core.Loot"
         xmlns:controls="using:GtaHeistPlanner.App.Controls"
+        xmlns:views="using:GtaHeistPlanner.App.Views"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1360" d:DesignHeight="850"
@@ -24,11 +25,17 @@
         </ListBox>
         <Button Grid.Column="2" Width="38" Height="38" CornerRadius="19" Padding="0"
                 Background="{Binding MicrophoneColor}" Command="{Binding ToggleMicrophoneCommand}"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                 ToolTip.Tip="{Binding MicrophoneStatusText}">
           <Viewbox Width="17" Height="17"><Path Fill="White" Data="M8,1 A3,3 0 0 1 11,4 L11,8 A3,3 0 0 1 5,8 L5,4 A3,3 0 0 1 8,1 M3,7 L3,8 A5,5 0 0 0 7,12.9 L7,15 L4.5,15 L4.5,17 L11.5,17 L11.5,15 L9,15 L9,12.9 A5,5 0 0 0 13,8 L13,7 L11.5,7 L11.5,8 A3.5,3.5 0 0 1 4.5,8 L4.5,7 Z" /></Viewbox>
         </Button>
-        <Button Grid.Column="3" Width="38" Height="38" Padding="0" Content="☰" FontSize="20"
-                ToolTip.Tip="Menu" Command="{Binding ToggleMenuCommand}" />
+        <Button Grid.Column="3" Width="38" Height="38" Padding="0"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                ToolTip.Tip="Settings" Command="{Binding OpenSettingsCommand}">
+          <Viewbox Width="18" Height="14">
+            <Path Fill="#E8EDF3" Data="M1,1 H17 V3 H1 Z M1,6 H17 V8 H1 Z M1,11 H17 V13 H1 Z" />
+          </Viewbox>
+        </Button>
       </Grid>
     </Border>
 
@@ -62,58 +69,49 @@
       </StackPanel></ScrollViewer>
     </Border>
 
-    <Grid Grid.Row="2" ColumnDefinitions="220,*" IsVisible="{Binding IsMapStage}">
-      <Border Background="#181E26" BorderBrush="#303946" BorderThickness="0,0,1,0" Padding="14">
-        <Grid RowDefinitions="Auto,Auto,*">
-          <TextBlock Text="{Binding StageTitle}" FontSize="19" FontWeight="Bold" Foreground="#F3C969" />
-          <TextBlock Grid.Row="1" Text="{Binding StageDescription}" Margin="0,3,0,12" FontSize="11"
-                     Foreground="#98A4B3" TextWrapping="Wrap" />
-          <ListBox Grid.Row="2" ItemsSource="{Binding Maps}" SelectedItem="{Binding SelectedMap}"
-                   Background="Transparent" BorderThickness="0">
-            <ListBox.ItemTemplate><DataTemplate x:DataType="maps:MapDefinition"><TextBlock Margin="4,7" Text="{Binding DisplayName}" /></DataTemplate></ListBox.ItemTemplate>
-          </ListBox>
-        </Grid>
-      </Border>
-
-      <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="18">
+    <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="18" IsVisible="{Binding IsMapStage}">
         <StackPanel Orientation="Horizontal" Margin="4,0,0,12" Spacing="10">
-          <TextBlock VerticalAlignment="Center" Text="KORTZ CENTER" FontSize="11" FontWeight="SemiBold" Foreground="#98A4B3" />
-          <TextBlock VerticalAlignment="Center" Text="/" Foreground="#566171" />
-          <TextBlock Text="{Binding SelectedMap.DisplayName}" FontSize="21" FontWeight="SemiBold" Foreground="#F1F4F7" />
+          <TextBlock Text="{Binding StageTitle}" FontSize="21" FontWeight="Bold" Foreground="#F3C969" />
+          <TextBlock VerticalAlignment="Center" Text="{Binding StageDescription}" FontSize="11" Foreground="#98A4B3" />
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-          <Border Padding="16" Background="#0B0E12" BorderBrush="#303946" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
-            <Grid>
-              <svg:Svg Path="{Binding SelectedMapAssetUri}" Stretch="Uniform" />
-              <controls:SecurityOverlayControl Analysis="{Binding SecurityAnalysis}" CameraData="{Binding CameraData}"
-                  Calibration="{Binding CurrentCalibration}" ShowSecurity="{Binding ShowSecurityOverlay}"
-                  ShowCameras="{Binding ShowCameras}" ShowCameraCones="{Binding ShowCameraCones}"
-                  ShowLoot="{Binding ShowLootOverlay}" ShowUnknownLootClearly="{Binding ShowUnknownLootClearly}"
-                  LootMarkers="{Binding LootMarkers}" MapId="{Binding SelectedMap.Id}"
-                  MapAspectRatio="{Binding SelectedMap.AspectRatio}" IsLootEditMode="{Binding IsLootAuthoringEnabled}"
-                  SelectedLoot="{Binding SelectedLoot}" LootRevision="{Binding LootRevision}"
-                  CreateLootCommand="{Binding CreateLootCommand}" MoveLootCommand="{Binding MoveLootCommand}"
-                  SelectLootCommand="{Binding SelectLootCommand}" DiagnosticText="{Binding HoveredMarker, Mode=TwoWay}" />
-              <controls:SewerOverlayControl IsVisible="{Binding IsSewerSelected}"
-                  Nodes="{Binding SewerNodes}" Connections="{Binding SewerConnections}"
-                  HighlightedConnections="{Binding HighlightedSewerConnections}"
-                  StartNodeId="{Binding SewerStartNodeId}" SelectedNode="{Binding SelectedSewerNode}"
-                  IsEditMode="{Binding IsSewerEditorVisible}" MapAspectRatio="{Binding SelectedMap.AspectRatio}"
-                  Revision="{Binding SewerRevision}" AddNodeCommand="{Binding AddSewerNodeCommand}"
-                  MoveNodeCommand="{Binding MoveSewerNodeCommand}" SelectNodeCommand="{Binding SelectSewerNodeCommand}" />
-              <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8" Padding="8,5"
-                      Background="#D911151B" CornerRadius="4" IsVisible="{Binding HasHoveredMarker}">
-                <TextBlock Text="{Binding HoveredMarker}" FontSize="11" Foreground="#E5EAF0" />
-              </Border>
-            </Grid>
-          </Border>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !HasFocusedMap}">
+            <ItemsControl ItemsSource="{Binding VisibleMapCards}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MapCardViewModel">
+                  <views:MapCardView Height="430" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasFocusedMap}">
+            <Button HorizontalAlignment="Left" Margin="5,0,0,4" Padding="12,5" Content="← Back to map overview"
+                    Command="{Binding ExitMapFocusCommand}" />
+            <ContentControl Grid.Row="1" Content="{Binding FocusedMapCard}">
+              <ContentControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:MapCardViewModel"><views:MapCardView /></DataTemplate>
+              </ContentControl.ContentTemplate>
+            </ContentControl>
+          </Grid>
 
           <Border Grid.Column="1" Width="300" Padding="14" Background="#181E26" BorderBrush="#303946" BorderThickness="1" CornerRadius="8">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding StageTitle}" FontWeight="Bold" Foreground="#F3C969" />
                 <TextBlock Text="{Binding StageDescription}" FontSize="11" Foreground="#98A4B3" TextWrapping="Wrap" />
+
+                <StackPanel Spacing="4" IsVisible="{Binding IsPreparationStage}">
+                  <TextBlock Text="Vault Code" FontWeight="SemiBold" />
+                  <TextBox Text="{Binding VaultCode}" PlaceholderText="12-34-56" />
+                </StackPanel>
+                <Border Padding="12" Background="#102634" BorderBrush="#75CFF4" BorderThickness="1" CornerRadius="6" IsVisible="{Binding IsActivityStage}">
+                  <StackPanel>
+                    <TextBlock Text="VAULT CODE" FontSize="10" FontWeight="Bold" Foreground="#75CFF4" />
+                    <TextBlock Text="{Binding VaultCode, TargetNullValue='Not discovered'}" FontSize="24" FontWeight="Bold" />
+                  </StackPanel>
+                </Border>
 
                 <StackPanel Spacing="7" IsVisible="{Binding IsLootStage}">
                   <TextBlock Text="{Binding BuyersRequestStatus}" FontWeight="SemiBold" />
@@ -129,6 +127,24 @@
                     <CheckBox Content="Buyer's Request" IsChecked="{Binding SelectedLoot.IsBuyersRequest, Mode=OneWay}" Command="{Binding ToggleBuyersRequestCommand}" />
                     <CheckBox Content="Looted" IsChecked="{Binding SelectedLoot.IsLooted, Mode=OneWay}" Command="{Binding ToggleLootedCommand}" />
                   </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding IsActivityStage}">
+                  <Separator Margin="0,8,0,3" />
+                  <TextBlock Text="ACTIVE SECURITY" FontWeight="Bold" Foreground="#75CFF4" />
+                  <TextBlock Text="Toggle elements for the chosen entry approach." FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+                  <TextBlock Text="Cameras" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding CurrentMapCameras}">
+                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:SecurityCameraViewModel"><CheckBox Content="{Binding Name}" IsChecked="{Binding IsActive}" /></DataTemplate></ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="Guards" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding CurrentMapGuards}">
+                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:SecurityGuardViewModel"><CheckBox Content="{Binding Name}" IsChecked="{Binding IsActive}" /></DataTemplate></ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="Patrols" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding CurrentMapPatrols}">
+                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:SecurityPatrolViewModel"><CheckBox Content="{Binding Name}" IsChecked="{Binding IsActive}" /></DataTemplate></ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </StackPanel>
 
                 <StackPanel Spacing="7" IsVisible="{Binding DeveloperMode}">
@@ -156,6 +172,42 @@
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="6"><Button Content="Fit Data" Command="{Binding FitDataCommand}" /><Button Grid.Column="1" Content="Reset" Command="{Binding ResetCommand}" /></Grid>
                     <Button Content="Save calibration" Command="{Binding SaveCalibrationCommand}" />
                   </StackPanel>
+                  <StackPanel Spacing="6" IsVisible="{Binding IsSecurityEditorVisible}">
+                    <Separator Margin="0,6" />
+                    <TextBlock Text="SECURITY EDITOR" FontWeight="Bold" Foreground="#75CFF4" />
+                    <TextBlock Text="Choose a tool, then click the map. Drag cameras or guards to move them." FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+                    <ComboBox ItemsSource="{Binding SecurityEditorTools}" SelectedItem="{Binding SecurityEditorTool}" />
+
+                    <TextBlock Text="Selected camera" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding SelectedSecurityCamera.Name}" PlaceholderText="Select a camera" />
+                    <TextBlock Text="Rotation (degrees)" FontSize="10" />
+                    <NumericUpDown Value="{Binding SelectedSecurityCamera.RotationDegrees}" Minimum="-360" Maximum="360" Increment="5" />
+                    <TextBlock Text="Field of view (degrees)" FontSize="10" />
+                    <NumericUpDown Value="{Binding SelectedSecurityCamera.FovDegrees}" Minimum="1" Maximum="179" Increment="1" />
+                    <TextBlock Text="Range (normalized map units)" FontSize="10" />
+                    <NumericUpDown Value="{Binding SelectedSecurityCamera.Range}" Minimum="0.01" Maximum="2" Increment="0.01" FormatString="0.00" />
+                    <Button Content="Remove selected camera" Command="{Binding RemoveSelectedCameraCommand}" />
+
+                    <TextBlock Text="Selected guard" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding SelectedSecurityGuard.Name}" PlaceholderText="Select a guard" />
+                    <TextBlock Text="Assigned patrols" FontSize="10" />
+                    <ItemsControl ItemsSource="{Binding SelectedGuardPatrolAssignments}">
+                      <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PatrolAssignmentViewModel"><CheckBox Content="{Binding Name}" IsChecked="{Binding IsAssigned}" /></DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Remove selected guard" Command="{Binding RemoveSelectedGuardCommand}" />
+
+                    <TextBlock Text="Patrol routes" FontWeight="SemiBold" />
+                    <ComboBox ItemsSource="{Binding CurrentMapPatrols}" SelectedItem="{Binding SelectedSecurityPatrol}" />
+                    <TextBox Text="{Binding SelectedSecurityPatrol.Name}" PlaceholderText="Selected patrol name" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                      <Button Content="New patrol" Command="{Binding NewSecurityPatrolCommand}" />
+                      <Button Grid.Column="1" Content="Remove patrol" Command="{Binding RemoveSelectedPatrolCommand}" />
+                    </Grid>
+                    <Button Content="Delete selected patrol node" Command="{Binding DeleteSelectedPatrolWaypointCommand}" IsEnabled="{Binding HasSelectedPatrolWaypoint}" />
+                    <Button Content="Save security JSON" Command="{Binding SaveSecurityDatasetCommand}" />
+                    <TextBlock Text="{Binding SecurityStatus}" FontSize="10" Foreground="#FFB8B8" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SecurityDataPath}" FontSize="9" Foreground="#687484" TextWrapping="Wrap" />
+                  </StackPanel>
                 </StackPanel>
 
                 <StackPanel Spacing="7" IsVisible="{Binding IsSewerSelected}">
@@ -180,17 +232,7 @@
             </ScrollViewer>
           </Border>
         </Grid>
-      </Grid>
     </Grid>
-
-    <Border Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,52,16,0"
-            Width="190" Padding="8" Background="#252E39" BorderBrush="#465364" BorderThickness="1"
-            CornerRadius="6" IsVisible="{Binding IsMenuOpen}" ZIndex="90">
-      <StackPanel Spacing="5">
-        <Button Content="Settings" HorizontalContentAlignment="Left" Command="{Binding OpenSettingsCommand}" />
-        <Button Content="Developer Mode…" HorizontalContentAlignment="Left" Command="{Binding OpenSettingsCommand}" />
-      </StackPanel>
-    </Border>
 
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsSettingsOpen}" ZIndex="100">
       <Border Width="480" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"

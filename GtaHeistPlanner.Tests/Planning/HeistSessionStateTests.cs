@@ -28,4 +28,16 @@ public sealed class HeistSessionStateTests
         Assert.Equal(3, session.PlayerCount);
         Assert.Contains("main-floor-loot-01", scopedLootIds);
     }
+
+    [Fact]
+    public void VaultCodeSurvivesStageChangesAndClearsOnReset()
+    {
+        var session = new HeistSessionState { VaultCode = "12-34-56" };
+
+        session.CurrentStage = PlannerStage.HeistActivity;
+        Assert.Equal("12-34-56", session.VaultCode);
+
+        session.Reset();
+        Assert.Null(session.VaultCode);
+    }
 }

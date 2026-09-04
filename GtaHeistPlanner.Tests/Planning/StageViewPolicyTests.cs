@@ -63,6 +63,24 @@ public sealed class StageViewPolicyTests
     }
 
     [Fact]
+    public void RedundantExteriorGroundFloorIsExcludedFromAllNormalStages()
+    {
+        foreach (var stage in Enum.GetValues<PlannerStage>())
+            Assert.DoesNotContain("exterior-groundfloor", StageViewPolicies.Get(stage).AllowedMapIds);
+    }
+
+    [Fact]
+    public void InfiltrationReturnsAllRelevantMapsForSimultaneousDisplay()
+    {
+        var maps = StageViewPolicies.Get(PlannerStage.HeistInfiltration).AllowedMapIds;
+
+        Assert.Equal(3, maps.Count);
+        Assert.Contains("exterior-firstfloor", maps);
+        Assert.Contains("exterior-second-floor", maps);
+        Assert.Contains("exterior-rooftop", maps);
+    }
+
+    [Fact]
     public void DeveloperModeIsRequiredForLootAuthoring()
     {
         var preparation = StageViewPolicies.Get(PlannerStage.Preparation);
@@ -71,5 +89,14 @@ public sealed class StageViewPolicyTests
         Assert.False(DeveloperViewPolicy.CanAuthorLoot(false, preparation, "main-floor"));
         Assert.True(DeveloperViewPolicy.CanAuthorLoot(true, preparation, "main-floor"));
         Assert.False(DeveloperViewPolicy.CanAuthorLoot(true, infiltration, "exterior-firstfloor"));
+    }
+
+    [Fact]
+    public void DeveloperModeAndOperationalStageAreRequiredForSecurityAuthoring()
+    {
+        Assert.False(DeveloperViewPolicy.CanAuthorSecurity(false, PlannerStage.HeistActivity));
+        Assert.False(DeveloperViewPolicy.CanAuthorSecurity(true, PlannerStage.Preparation));
+        Assert.True(DeveloperViewPolicy.CanAuthorSecurity(true, PlannerStage.HeistInfiltration));
+        Assert.True(DeveloperViewPolicy.CanAuthorSecurity(true, PlannerStage.HeistActivity));
     }
 }

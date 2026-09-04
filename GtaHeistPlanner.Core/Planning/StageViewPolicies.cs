@@ -9,7 +9,7 @@ public static class StageViewPolicies
 
     private static readonly IReadOnlySet<string> ExteriorMaps = new HashSet<string>(StringComparer.Ordinal)
     {
-        "exterior-groundfloor", "exterior-firstfloor", "exterior-second-floor",
+        "exterior-firstfloor", "exterior-second-floor",
         "exterior-rooftop",
     };
 

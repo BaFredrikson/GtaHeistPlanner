@@ -79,6 +79,8 @@ public sealed class SewerOverlayControl : Control
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
         var point = e.GetPosition(this);
         var node = FindNode(point);
         if (node is not null)

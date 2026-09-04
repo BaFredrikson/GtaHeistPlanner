@@ -5,6 +5,9 @@ public sealed class HeistSessionState
     private int _playerCount = 1;
 
     public PlannerStage CurrentStage { get; set; } = PlannerStage.Preparation;
+    public string? VaultCode { get; set; }
+
+    public void Reset() => VaultCode = null;
 
     public int PlayerCount
     {

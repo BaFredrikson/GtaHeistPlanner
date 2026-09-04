@@ -227,6 +227,8 @@ public sealed class SecurityOverlayControl : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
         var pointer = e.GetPosition(this);
         var marker = FindLootMarker(pointer);
         if (marker is not null)
