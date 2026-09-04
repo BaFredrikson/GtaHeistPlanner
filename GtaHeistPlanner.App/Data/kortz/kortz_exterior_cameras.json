@@ -1,0 +1,35 @@
+{
+  "mapId": "exterior-firstfloor",
+  "cameras": [
+    {
+      "id": "cam-exterior-01",
+      "mapId": "exterior-firstfloor",
+      "position": { "x": -2288.0, "y": 278.0, "z": 173.6 },
+      "headingDegrees": 65.0,
+      "fovDegrees": 58.0,
+      "range": 24.0,
+      "label": "West approach",
+      "notes": "Sample placement for manual calibration; not extracted game data."
+    },
+    {
+      "id": "cam-exterior-02",
+      "mapId": "exterior-firstfloor",
+      "position": { "x": -2252.0, "y": 267.5, "z": 173.6 },
+      "headingDegrees": 350.0,
+      "fovDegrees": 65.0,
+      "range": 28.0,
+      "label": "Central walkway",
+      "notes": "Sample placement for manual calibration; not extracted game data."
+    },
+    {
+      "id": "cam-exterior-03",
+      "mapId": "exterior-firstfloor",
+      "position": { "x": -2222.0, "y": 301.0, "z": 173.6 },
+      "headingDegrees": 225.0,
+      "fovDegrees": 52.0,
+      "range": 22.0,
+      "label": "East approach",
+      "notes": "Sample placement for manual calibration; not extracted game data."
+    }
+  ]
+}

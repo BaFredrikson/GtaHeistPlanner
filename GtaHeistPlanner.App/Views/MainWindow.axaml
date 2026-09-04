@@ -1,164 +1,217 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:GtaHeistPlanner.App.ViewModels"
-        xmlns:maps="using:GtaHeistPlanner.Core.Maps"
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GtaHeistPlanner.App.ViewModels" xmlns:models="using:GtaHeistPlanner.App.Models"
+        xmlns:maps="using:GtaHeistPlanner.Core.Maps" xmlns:loot="using:GtaHeistPlanner.Core.Loot"
         xmlns:controls="using:GtaHeistPlanner.App.Controls"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        d:DesignWidth="1280"
-        d:DesignHeight="800"
-        x:Class="GtaHeistPlanner.App.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
-        Width="1280"
-        Height="800"
-        MinWidth="800"
-        MinHeight="520"
-        Background="#11151B"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="GTA Heist Planner — Kortz">
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1360" d:DesignHeight="850"
+        x:Class="GtaHeistPlanner.App.Views.MainWindow" x:DataType="vm:MainViewModel"
+        Width="1360" Height="850" MinWidth="900" MinHeight="600" Background="#11151B"
+        Icon="/Assets/avalonia-logo.ico" Title="GTA Heist Planner — Kortz">
+  <Design.DataContext><vm:MainViewModel /></Design.DataContext>
 
-    <Design.DataContext>
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Grid RowDefinitions="58,48,*">
+    <Border Background="#181E26" BorderBrush="#303946" BorderThickness="0,0,0,1" Padding="18,8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="18">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="GTA HEIST PLANNER" FontSize="17" FontWeight="Bold" Foreground="#F3C969" />
+          <TextBlock Text="Kortz Center" FontSize="10" Foreground="#98A4B3" />
+        </StackPanel>
+        <ListBox Grid.Column="1" HorizontalAlignment="Center" ItemsSource="{Binding PlayerCountOptions}"
+                 SelectedItem="{Binding SelectedPlayerCountOption}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="models:PlayerCountOption"><TextBlock Text="{Binding Label}" Margin="11,5" FontWeight="SemiBold" /></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <Button Grid.Column="2" Width="38" Height="38" CornerRadius="19" Padding="0"
+                Background="{Binding MicrophoneColor}" Command="{Binding ToggleMicrophoneCommand}"
+                ToolTip.Tip="{Binding MicrophoneStatusText}">
+          <Viewbox Width="17" Height="17"><Path Fill="White" Data="M8,1 A3,3 0 0 1 11,4 L11,8 A3,3 0 0 1 5,8 L5,4 A3,3 0 0 1 8,1 M3,7 L3,8 A5,5 0 0 0 7,12.9 L7,15 L4.5,15 L4.5,17 L11.5,17 L11.5,15 L9,15 L9,12.9 A5,5 0 0 0 13,8 L13,7 L11.5,7 L11.5,8 A3.5,3.5 0 0 1 4.5,8 L4.5,7 Z" /></Viewbox>
+        </Button>
+        <Button Grid.Column="3" Width="38" Height="38" Padding="0" Content="☰" FontSize="20"
+                ToolTip.Tip="Menu" Command="{Binding ToggleMenuCommand}" />
+      </Grid>
+    </Border>
 
-    <Grid ColumnDefinitions="220,*">
-        <Border Grid.Column="0"
-                Background="#181E26"
-                BorderBrush="#303946"
-                BorderThickness="0,0,1,0"
-                Padding="16">
-            <Grid RowDefinitions="Auto,Auto,*">
-                <TextBlock Text="KORTZ"
-                           FontSize="22"
-                           FontWeight="Bold"
-                           Foreground="#F3C969" />
-                <TextBlock Grid.Row="1"
-                           Margin="0,2,0,14"
-                           Text="Map layers"
-                           Foreground="#98A4B3" />
-                <ListBox Grid.Row="2"
-                         ItemsSource="{Binding Maps}"
-                         SelectedItem="{Binding SelectedMap}"
-                         Background="Transparent"
-                         BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="maps:MapDefinition">
-                            <TextBlock Margin="4,7" Text="{Binding DisplayName}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </Border>
+    <Border Grid.Row="1" Background="#141920" BorderBrush="#303946" BorderThickness="0,0,0,1" Padding="18,5">
+      <ListBox ItemsSource="{Binding StageOptions}" SelectedItem="{Binding SelectedStageOption}"
+               HorizontalAlignment="Center" Background="Transparent" BorderThickness="0">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBox.ItemTemplate><DataTemplate x:DataType="models:PlannerStageOption"><TextBlock Text="{Binding Label}" Margin="22,7" FontWeight="SemiBold" /></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="20">
-            <StackPanel Orientation="Horizontal" Margin="4,0,0,14" Spacing="10">
-                <TextBlock VerticalAlignment="Center"
-                           Text="KORTZ CENTER"
-                           FontSize="12"
-                           FontWeight="SemiBold"
-                           Foreground="#98A4B3" />
-                <TextBlock VerticalAlignment="Center" Text="/" Foreground="#566171" />
-                <TextBlock Text="{Binding SelectedMap.DisplayName}"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="#F1F4F7" />
-            </StackPanel>
-
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <Border Padding="18"
-                        Background="#0B0E12"
-                        BorderBrush="#303946"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        ClipToBounds="True">
-                    <Grid>
-                        <svg:Svg Path="{Binding SelectedMapAssetUri}" Stretch="Uniform" />
-                        <controls:SecurityOverlayControl
-                            IsVisible="{Binding IsSecurityOverlayVisible}"
-                            Analysis="{Binding SecurityAnalysis}"
-                            Calibration="{Binding CurrentCalibration}"
-                            DiagnosticText="{Binding HoveredMarker, Mode=TwoWay}" />
-                        <Border HorizontalAlignment="Left"
-                                VerticalAlignment="Bottom"
-                                Margin="8"
-                                Padding="8,5"
-                                Background="#D911151B"
-                                CornerRadius="4"
-                                IsVisible="{Binding HasHoveredMarker}">
-                            <TextBlock Text="{Binding HoveredMarker}"
-                                       FontSize="11"
-                                       Foreground="#E5EAF0" />
-                        </Border>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="1"
-                        Width="270"
-                        Padding="14"
-                        Background="#181E26"
-                        BorderBrush="#303946"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        IsVisible="{Binding IsSecurityOverlayVisible}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="OVERLAY CALIBRATION"
-                                       FontWeight="Bold"
-                                       Foreground="#F3C969" />
-                            <TextBlock Text="Normalized planner coordinates"
-                                       FontSize="11"
-                                       Foreground="#98A4B3" />
-
-                            <TextBlock Text="Scale X" />
-                            <NumericUpDown Value="{Binding ScaleX}"
-                                           Minimum="-1" Maximum="1"
-                                           Increment="0.0005" FormatString="0.000000" />
-                            <TextBlock Text="Scale Y" />
-                            <NumericUpDown Value="{Binding ScaleY}"
-                                           Minimum="-1" Maximum="1"
-                                           Increment="0.0005" FormatString="0.000000" />
-                            <TextBlock Text="Offset X" />
-                            <NumericUpDown Value="{Binding OffsetX}"
-                                           Minimum="-5" Maximum="5"
-                                           Increment="0.01" FormatString="0.0000" />
-                            <TextBlock Text="Offset Y" />
-                            <NumericUpDown Value="{Binding OffsetY}"
-                                           Minimum="-5" Maximum="5"
-                                           Increment="0.01" FormatString="0.0000" />
-                            <TextBlock Text="Rotation (degrees)" />
-                            <NumericUpDown Value="{Binding RotationDegrees}"
-                                           Minimum="-360" Maximum="360"
-                                           Increment="1" FormatString="0.0" />
-
-                            <CheckBox Content="Flip X" IsChecked="{Binding FlipX}" />
-                            <CheckBox Content="Flip Y" IsChecked="{Binding FlipY}" />
-
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0">
-                                <Button Content="Fit Data"
-                                        HorizontalContentAlignment="Center"
-                                        Command="{Binding FitDataCommand}" />
-                                <Button Grid.Column="1"
-                                        Content="Reset"
-                                        HorizontalContentAlignment="Center"
-                                        Command="{Binding ResetCommand}" />
-                            </Grid>
-                            <Button Content="Save calibration"
-                                    HorizontalContentAlignment="Center"
-                                    Command="{Binding SaveCalibrationCommand}" />
-                            <TextBlock Text="{Binding SaveStatus}"
-                                       FontSize="11"
-                                       Foreground="#98A4B3"
-                                       TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding CalibrationPath}"
-                                       FontSize="10"
-                                       Foreground="#687484"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </ScrollViewer>
-                </Border>
-            </Grid>
+    <Border Grid.Row="2" Margin="24" Padding="24" Background="#181E26" BorderBrush="#303946"
+            BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsPlanningStage}">
+      <ScrollViewer><StackPanel Spacing="16" MaxWidth="1000" HorizontalAlignment="Stretch">
+        <TextBlock Text="HEIST PLANNING SUMMARY" FontSize="22" FontWeight="Bold" Foreground="#F3C969" />
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+          <Border Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="CREW" Foreground="#98A4B3" /><TextBlock Text="{Binding PlayerCount, StringFormat='{}{0} player(s)'}" FontSize="20" /></StackPanel></Border>
+          <Border Grid.Column="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="BAG CAPACITY" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningSummary.BagCapacityPercent, StringFormat='{}{0}%'}" FontSize="20" /></StackPanel></Border>
+          <Border Grid.Column="2" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="ESTIMATED VALUE" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningValueRange}" FontSize="18" /></StackPanel></Border>
+          <Border Grid.Row="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="SCOPED LOOT" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningSummary.PresentCount, StringFormat='{}{0} present'}" FontSize="18" /><TextBlock Text="{Binding PlanningSummary.KnownLocationCount, StringFormat='{}{0} known locations'}" /></StackPanel></Border>
+          <Border Grid.Row="1" Grid.Column="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="BUYER'S REQUEST" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningSummary.BuyersRequestCount, StringFormat='{}{0} / 3'}" FontSize="20" /></StackPanel></Border>
+          <Border Grid.Row="1" Grid.Column="2" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="ACCESS / PREP" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningSummary.InaccessibleCount, StringFormat='{}{0} inaccessible'}" /><TextBlock Text="{Binding PlanningSummary.GlassCutterCount, StringFormat='Glass Cutter: {0}'}" /><TextBlock Text="{Binding PlanningSummary.PowerDrillsCount, StringFormat='Power Drills: {0}'}" /></StackPanel></Border>
         </Grid>
+        <TextBlock Text="LOOT BREAKDOWN" FontSize="15" FontWeight="Bold" />
+        <ItemsControl ItemsSource="{Binding PlanningSummary.Categories}"><ItemsControl.ItemTemplate><DataTemplate><Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16" Margin="0,3"><TextBlock Text="{Binding Name}" /><TextBlock Grid.Column="1" Text="{Binding Count, StringFormat='{}×{0}'}" /><TextBlock Grid.Column="2" Text="{Binding MinValue, StringFormat='{}{0:C0} min'}" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+          <Border Padding="16" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="RECOMMENDED HAUL" FontWeight="Bold" /><TextBlock Text="Future optimization" Foreground="#687484" /></StackPanel></Border>
+          <Border Grid.Column="1" Padding="16" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="OPTIMAL ROUTE" FontWeight="Bold" /><TextBlock Text="Future route planning" Foreground="#687484" /></StackPanel></Border>
+          <Border Grid.Column="2" Padding="16" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="OPTIONAL PREPS" FontWeight="Bold" /><TextBlock Text="Future recommendations" Foreground="#687484" /></StackPanel></Border>
+        </Grid>
+      </StackPanel></ScrollViewer>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="220,*" IsVisible="{Binding IsMapStage}">
+      <Border Background="#181E26" BorderBrush="#303946" BorderThickness="0,0,1,0" Padding="14">
+        <Grid RowDefinitions="Auto,Auto,*">
+          <TextBlock Text="{Binding StageTitle}" FontSize="19" FontWeight="Bold" Foreground="#F3C969" />
+          <TextBlock Grid.Row="1" Text="{Binding StageDescription}" Margin="0,3,0,12" FontSize="11"
+                     Foreground="#98A4B3" TextWrapping="Wrap" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding Maps}" SelectedItem="{Binding SelectedMap}"
+                   Background="Transparent" BorderThickness="0">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="maps:MapDefinition"><TextBlock Margin="4,7" Text="{Binding DisplayName}" /></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="18">
+        <StackPanel Orientation="Horizontal" Margin="4,0,0,12" Spacing="10">
+          <TextBlock VerticalAlignment="Center" Text="KORTZ CENTER" FontSize="11" FontWeight="SemiBold" Foreground="#98A4B3" />
+          <TextBlock VerticalAlignment="Center" Text="/" Foreground="#566171" />
+          <TextBlock Text="{Binding SelectedMap.DisplayName}" FontSize="21" FontWeight="SemiBold" Foreground="#F1F4F7" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+          <Border Padding="16" Background="#0B0E12" BorderBrush="#303946" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <Grid>
+              <svg:Svg Path="{Binding SelectedMapAssetUri}" Stretch="Uniform" />
+              <controls:SecurityOverlayControl Analysis="{Binding SecurityAnalysis}" CameraData="{Binding CameraData}"
+                  Calibration="{Binding CurrentCalibration}" ShowSecurity="{Binding ShowSecurityOverlay}"
+                  ShowCameras="{Binding ShowCameras}" ShowCameraCones="{Binding ShowCameraCones}"
+                  ShowLoot="{Binding ShowLootOverlay}" ShowUnknownLootClearly="{Binding ShowUnknownLootClearly}"
+                  LootMarkers="{Binding LootMarkers}" MapId="{Binding SelectedMap.Id}"
+                  MapAspectRatio="{Binding SelectedMap.AspectRatio}" IsLootEditMode="{Binding IsLootAuthoringEnabled}"
+                  SelectedLoot="{Binding SelectedLoot}" LootRevision="{Binding LootRevision}"
+                  CreateLootCommand="{Binding CreateLootCommand}" MoveLootCommand="{Binding MoveLootCommand}"
+                  SelectLootCommand="{Binding SelectLootCommand}" DiagnosticText="{Binding HoveredMarker, Mode=TwoWay}" />
+              <controls:SewerOverlayControl IsVisible="{Binding IsSewerSelected}"
+                  Nodes="{Binding SewerNodes}" Connections="{Binding SewerConnections}"
+                  HighlightedConnections="{Binding HighlightedSewerConnections}"
+                  StartNodeId="{Binding SewerStartNodeId}" SelectedNode="{Binding SelectedSewerNode}"
+                  IsEditMode="{Binding IsSewerEditorVisible}" MapAspectRatio="{Binding SelectedMap.AspectRatio}"
+                  Revision="{Binding SewerRevision}" AddNodeCommand="{Binding AddSewerNodeCommand}"
+                  MoveNodeCommand="{Binding MoveSewerNodeCommand}" SelectNodeCommand="{Binding SelectSewerNodeCommand}" />
+              <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8" Padding="8,5"
+                      Background="#D911151B" CornerRadius="4" IsVisible="{Binding HasHoveredMarker}">
+                <TextBlock Text="{Binding HoveredMarker}" FontSize="11" Foreground="#E5EAF0" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Width="300" Padding="14" Background="#181E26" BorderBrush="#303946" BorderThickness="1" CornerRadius="8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding StageTitle}" FontWeight="Bold" Foreground="#F3C969" />
+                <TextBlock Text="{Binding StageDescription}" FontSize="11" Foreground="#98A4B3" TextWrapping="Wrap" />
+
+                <StackPanel Spacing="7" IsVisible="{Binding IsLootStage}">
+                  <TextBlock Text="{Binding BuyersRequestStatus}" FontWeight="SemiBold" />
+                  <Button Content="Reset heist loot state" Command="{Binding ResetHeistCommand}" />
+                  <StackPanel Spacing="5" IsVisible="{Binding HasSelectedLoot}">
+                    <Separator Margin="0,4" /><TextBlock Text="SELECTED LOOT" FontWeight="Bold" />
+                    <TextBlock Text="{Binding SelectedLoot.Name}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedLoot.Economics.DisplayName}" FontSize="11" />
+                    <TextBlock Text="{Binding SelectedLoot.Economics.BagPercent, StringFormat='Bag usage: {0}%'}" FontSize="11" />
+                    <TextBlock Text="{Binding SelectedLoot.EstimatedValueDisplay, StringFormat='Estimated: {0}'}" FontSize="11" />
+                    <TextBlock Text="{Binding SelectedLoot.AccessDisplay}" FontSize="11" TextWrapping="Wrap" />
+                    <CheckBox Content="Present" IsChecked="{Binding SelectedLoot.IsPresent, Mode=OneWay}" Command="{Binding ToggleLootPresentCommand}" />
+                    <CheckBox Content="Buyer's Request" IsChecked="{Binding SelectedLoot.IsBuyersRequest, Mode=OneWay}" Command="{Binding ToggleBuyersRequestCommand}" />
+                    <CheckBox Content="Looted" IsChecked="{Binding SelectedLoot.IsLooted, Mode=OneWay}" Command="{Binding ToggleLootedCommand}" />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="7" IsVisible="{Binding DeveloperMode}">
+                  <Separator Margin="0,8,0,3" /><TextBlock Text="DEVELOPER TOOLS" FontWeight="Bold" Foreground="#E8A65A" />
+                  <CheckBox Content="Edit loot locations" IsChecked="{Binding IsLootEditMode}" IsVisible="{Binding IsLootStage}" />
+                  <TextBlock Text="Click to add; drag to reposition." FontSize="10" Foreground="#98A4B3" IsVisible="{Binding IsLootAuthoringEnabled}" />
+                  <StackPanel Spacing="5" IsVisible="{Binding IsLootAuthoringEnabled}">
+                    <TextBox Text="{Binding SelectedLoot.Name}" PlaceholderText="Selected loot name" />
+                    <ComboBox ItemsSource="{Binding LootTypes}" SelectedItem="{Binding SelectedLoot.SelectedEconomics}">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="loot:LootEconomics"><TextBlock Text="{Binding DisplayName}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <CheckBox Content="Albert Crisp Gallery (2 players)" IsChecked="{Binding SelectedLoot.IsCrispGallery}" />
+                    <Button Content="Remove selected marker" Command="{Binding RemoveSelectedLootCommand}" />
+                    <Button Content="Save loot layout" Command="{Binding SaveLootLayoutCommand}" />
+                    <TextBlock Text="{Binding LootStatus}" FontSize="10" Foreground="#FFB8B8" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Spacing="6" IsVisible="{Binding ShowDeveloperCalibration}">
+                    <Separator Margin="0,6" /><TextBlock Text="MAP CALIBRATION / DEBUG" FontWeight="Bold" />
+                    <TextBlock Text="Scale X" /><NumericUpDown Value="{Binding ScaleX}" Minimum="-1" Maximum="1" Increment="0.0005" FormatString="0.000000" />
+                    <TextBlock Text="Scale Y" /><NumericUpDown Value="{Binding ScaleY}" Minimum="-1" Maximum="1" Increment="0.0005" FormatString="0.000000" />
+                    <TextBlock Text="Offset X" /><NumericUpDown Value="{Binding OffsetX}" Minimum="-5" Maximum="5" Increment="0.01" FormatString="0.0000" />
+                    <TextBlock Text="Offset Y" /><NumericUpDown Value="{Binding OffsetY}" Minimum="-5" Maximum="5" Increment="0.01" FormatString="0.0000" />
+                    <TextBlock Text="Rotation" /><NumericUpDown Value="{Binding RotationDegrees}" Minimum="-360" Maximum="360" Increment="1" />
+                    <CheckBox Content="Flip X" IsChecked="{Binding FlipX}" /><CheckBox Content="Flip Y" IsChecked="{Binding FlipY}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6"><Button Content="Fit Data" Command="{Binding FitDataCommand}" /><Button Grid.Column="1" Content="Reset" Command="{Binding ResetCommand}" /></Grid>
+                    <Button Content="Save calibration" Command="{Binding SaveCalibrationCommand}" />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="7" IsVisible="{Binding IsSewerSelected}">
+                  <Separator Margin="0,8,0,3" /><TextBlock Text="SEWER ESCAPE ROUTE" FontWeight="Bold" Foreground="#F3C969" />
+                  <TextBox Text="{Binding SewerRouteInput}" PlaceholderText="L R R L" />
+                  <Button Content="Apply route" Command="{Binding ApplySewerRouteCommand}" />
+                  <TextBlock Text="{Binding SewerDiagnostic}" FontSize="11" Foreground="#FFB8B8" TextWrapping="Wrap" />
+                  <StackPanel Spacing="6" IsVisible="{Binding IsSewerEditorVisible}">
+                    <TextBlock Text="GRAPH AUTHORING" FontWeight="Bold" Foreground="#E8A65A" />
+                    <TextBlock Text="Click to add junctions; drag to move." FontSize="10" Foreground="#98A4B3" />
+                    <TextBlock Text="{Binding SelectedSewerNode.Id, StringFormat='Selected: {0}'}" />
+                    <Button Content="Set selected as entrance" Command="{Binding SetSewerStartNodeCommand}" />
+                    <TextBlock Text="Connect selected node to:" />
+                    <ComboBox ItemsSource="{Binding SewerNodes}" SelectedItem="{Binding SewerConnectionTarget}" />
+                    <ComboBox ItemsSource="{Binding SewerTurns}" SelectedItem="{Binding NewSewerConnectionTurn}" />
+                    <Button Content="Add connection" Command="{Binding AddSewerConnectionCommand}" />
+                    <Button Content="Save sewer graph" Command="{Binding SaveSewerGraphCommand}" />
+                    <TextBlock Text="{Binding SewerGraphPath}" FontSize="9" Foreground="#687484" TextWrapping="Wrap" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Grid>
     </Grid>
+
+    <Border Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,52,16,0"
+            Width="190" Padding="8" Background="#252E39" BorderBrush="#465364" BorderThickness="1"
+            CornerRadius="6" IsVisible="{Binding IsMenuOpen}" ZIndex="90">
+      <StackPanel Spacing="5">
+        <Button Content="Settings" HorizontalContentAlignment="Left" Command="{Binding OpenSettingsCommand}" />
+        <Button Content="Developer Mode…" HorizontalContentAlignment="Left" Command="{Binding OpenSettingsCommand}" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsSettingsOpen}" ZIndex="100">
+      <Border Width="480" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+              Background="#1C232D" BorderBrush="#465364" BorderThickness="1" CornerRadius="10">
+        <StackPanel Spacing="12">
+          <TextBlock Text="SETTINGS" FontSize="20" FontWeight="Bold" Foreground="#F3C969" />
+          <TextBlock Text="Recording device" FontWeight="SemiBold" />
+          <ComboBox ItemsSource="{Binding RecordingDevices}" SelectedItem="{Binding SelectedRecordingDevice}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="models:RecordingDeviceInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <CheckBox Content="Microphone enabled" IsChecked="{Binding MicrophoneEnabled}" />
+          <Separator Margin="0,4" /><TextBlock Text="Developer" FontWeight="SemiBold" />
+          <CheckBox Content="Developer Mode" IsChecked="{Binding DeveloperMode}" />
+          <TextBlock Text="Shows authoring, calibration, and debug controls." FontSize="11" Foreground="#98A4B3" />
+          <TextBlock Text="{Binding SettingsPath}" FontSize="10" Foreground="#687484" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+            <Button Content="Cancel" Command="{Binding CloseSettingsCommand}" />
+            <Button Grid.Column="1" Content="Save" Command="{Binding SaveSettingsCommand}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
 </Window>

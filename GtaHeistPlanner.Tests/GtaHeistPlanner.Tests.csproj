@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GtaHeistPlanner.Core\GtaHeistPlanner.Core.csproj" />
+    <ProjectReference Include="..\GtaHeistPlanner.App\GtaHeistPlanner.App.csproj" />
     <ProjectReference Include="..\GtaHeistPlanner.DataExtractor\GtaHeistPlanner.DataExtractor.csproj" />
   </ItemGroup>
 

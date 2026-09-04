@@ -12,6 +12,18 @@
     <AvaloniaResource Include="Assets\**" />
     <AvaloniaResource Include="..\assets\maps\kortz\*.svg"
                       Link="Assets\maps\kortz\%(Filename)%(Extension)" />
+    <AvaloniaResource Include="..\assets\icons\camera.png"
+                      Link="Assets\icons\camera.png" />
+    <AvaloniaResource Include="..\assets\icons\loot.png"
+                      Link="Assets\icons\loot.png" />
+    <AvaloniaResource Include="..\assets\icons\special_loot.png"
+                      Link="Assets\icons\special_loot.png" />
+    <AvaloniaResource Include="..\assets\icons\truckcargo.png"
+                      Link="Assets\icons\truckcargo.png" />
+    <AvaloniaResource Include="Data\kortz\kortz_loot_spawns.json" />
+    <AvaloniaResource Include="Data\kortz\kortz_sewer_graph.json" />
+    <Content Include="Data\kortz\kortz_exterior_cameras.json"
+             CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\analysis\kortz\kortz_museum.analysis.json"
              Link="Data\kortz\kortz_museum.analysis.json"
              CopyToOutputDirectory="PreserveNewest" />
@@ -27,6 +39,7 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="NAudio.Wasapi" Version="3.0.1" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="12.0.0.17" />
   </ItemGroup>
 
