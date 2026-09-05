@@ -4,13 +4,24 @@ namespace GtaHeistPlanner.Voice;
 
 public sealed class VoiceDiagnosticTrace
 {
+    private const int MaximumEntries = 500;
     private readonly ConcurrentQueue<string> _entries = new();
     private readonly ConcurrentDictionary<string, byte> _once = new(StringComparer.Ordinal);
+    private readonly Func<bool>? _uiThreadAccess;
+
+    public VoiceDiagnosticTrace(Func<bool>? uiThreadAccess = null) => _uiThreadAccess = uiThreadAccess;
 
     public IReadOnlyList<string> Entries => _entries.ToArray();
 
-    public void Record(string message) =>
+    public void Record(string message)
+    {
         _entries.Enqueue($"{DateTimeOffset.Now:O} {message}");
+        while (_entries.Count > MaximumEntries)
+            _entries.TryDequeue(out _);
+    }
+
+    public void RecordMilestone(string operation) => Record(
+        $"[thread {Environment.CurrentManagedThreadId}; UI access: {(_uiThreadAccess is null ? "unknown" : _uiThreadAccess().ToString())}] {operation}");
 
     public void RecordOnce(string key, string message)
     {

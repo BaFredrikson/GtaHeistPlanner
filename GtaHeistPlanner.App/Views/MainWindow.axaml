@@ -158,6 +158,7 @@
                     <TextBlock Text="{Binding VoiceRecognitionState, StringFormat='Recognition: {0}'}" FontSize="10" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding ConfiguredCaptureDevice, StringFormat='Capture: {0}'}" FontSize="10" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding TransmittedAudioFormat, StringFormat='Transmitted: {0}'}" FontSize="10" />
+                    <TextBlock Text="{Binding VoiceUiHeartbeat, StringFormat='UI heartbeat: {0:HH:mm:ss.fff}', TargetNullValue='UI heartbeat: —'}" FontSize="10" />
                     <TextBlock Text="{Binding ScopeOutState, StringFormat='Session: {0}'}" FontSize="10" />
                     <TextBlock Text="{Binding CurrentPartialTranscript, StringFormat='Partial: {0}', TargetNullValue='Partial: —'}" FontSize="10" Foreground="#E8A65A" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding LastRecognizedText, StringFormat='Heard: {0}', TargetNullValue='Heard: —'}" FontSize="10" TextWrapping="Wrap" />

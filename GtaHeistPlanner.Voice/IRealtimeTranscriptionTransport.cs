@@ -10,5 +10,6 @@ public interface IRealtimeTranscriptionTransport : IAsyncDisposable
     event EventHandler<string>? StateChanged;
     Task ConnectAsync(string apiKey, RealtimeTranscriptionOptions options, CancellationToken cancellationToken);
     ValueTask SendAudioAsync(ReadOnlyMemory<byte> pcm24KhzMono, CancellationToken cancellationToken);
+    ValueTask CommitAudioAsync(CancellationToken cancellationToken);
     Task CloseAsync(CancellationToken cancellationToken);
 }

@@ -33,6 +33,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly ISpeechRecognitionService _speechRecognitionService;
     private readonly IAudioCaptureService _audioCaptureService;
     private readonly DispatcherTimer _inputDetectedResetTimer;
+    private readonly DispatcherTimer _voiceUiHeartbeatTimer;
+    private int _audioUiUpdatePending;
     private ScopeOutVoiceSession? _scopeOutSession;
 
     [ObservableProperty]
@@ -138,6 +140,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string VoiceSimulatorText { get; set; } = string.Empty;
     [ObservableProperty] public partial string? VoiceStartupDiagnostics { get; set; }
     [ObservableProperty] public partial string? CurrentPartialTranscript { get; set; }
+    [ObservableProperty] public partial DateTimeOffset? VoiceUiHeartbeat { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFocusedMap))]
     [NotifyPropertyChangedFor(nameof(FocusedMapCard))]
@@ -250,7 +253,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         : $"{SelectedRecordingDevice.Name} ({SelectedRecordingDevice.Id})";
     public string TransmittedAudioFormat => "24,000 Hz, 16-bit mono PCM";
 
-    public MainViewModel() : this(new OpenAiRealtimeSpeechRecognitionService(), new WasapiAudioCaptureService())
+    public MainViewModel() : this(
+        new OpenAiRealtimeSpeechRecognitionService(diagnostics: new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess())),
+        new WasapiAudioCaptureService(new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess())))
     {
     }
 
@@ -265,6 +270,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             _inputDetectedResetTimer.Stop();
             SetMicrophoneInputDetected(false);
+        };
+        _voiceUiHeartbeatTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _voiceUiHeartbeatTimer.Tick += (_, _) =>
+        {
+            VoiceUiHeartbeat = DateTimeOffset.Now;
+            _speechRecognitionService.Diagnostics.RecordMilestone("Developer UI heartbeat");
+            RefreshVoiceStartupDiagnostics();
         };
         _speechRecognitionService.SpeechRecognized += OnSpeechRecognized;
         _speechRecognitionService.PartialTranscriptChanged += OnPartialTranscriptChanged;
@@ -340,7 +352,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             IsLootEditMode = false;
             SecurityEditorTool = SecurityEditorTool.Select;
+            _voiceUiHeartbeatTimer.Stop();
         }
+        else if (MicrophoneStatus != MicrophoneStatus.Off)
+            _voiceUiHeartbeatTimer.Start();
     }
 
     partial void OnSelectedSecurityGuardChanged(SecurityGuardViewModel? oldValue, SecurityGuardViewModel? newValue)
@@ -362,18 +377,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     partial void OnMicrophoneEnabledChanged(bool value)
     {
         if (!value)
-            StopVoiceRecognition();
+            ObserveVoiceTask(StopVoiceRecognitionAsync(), "Disable microphone");
     }
 
     [RelayCommand]
     private async Task ToggleMicrophone()
     {
+        _speechRecognitionService.Diagnostics.RecordMilestone("Mic toggle entered");
         if (!MicrophoneEnabled)
             return;
         if (MicrophoneStatus == MicrophoneStatus.Off)
             await StartVoiceRecognitionAsync();
         else
-            StopVoiceRecognition();
+            await StopVoiceRecognitionAsync();
     }
 
     private async Task StartVoiceRecognitionAsync()
@@ -395,6 +411,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             VoiceRecognitionState = _speechRecognitionService.StateDescription;
             RefreshVoiceStartupDiagnostics();
             VoiceCommandError = null;
+            if (DeveloperMode)
+                _voiceUiHeartbeatTimer.Start();
+            _speechRecognitionService.Diagnostics.RecordMilestone("UI status updated after microphone startup");
         }
         catch (Exception exception)
         {
@@ -408,15 +427,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ScopeOutState));
     }
 
-    private void StopVoiceRecognition()
+    private async Task StopVoiceRecognitionAsync()
     {
+        _speechRecognitionService.Diagnostics.RecordMilestone("UI microphone stop entered");
         _inputDetectedResetTimer.Stop();
+        _voiceUiHeartbeatTimer.Stop();
         _audioCaptureService.Stop();
-        _speechRecognitionService.Stop();
+        await _speechRecognitionService.StopAsync();
         MicrophoneStatus = MicrophoneStatus.Off;
         _scopeOutSession?.SetListening(false);
         VoiceRecognitionState = _speechRecognitionService.StateDescription;
         OnPropertyChanged(nameof(ScopeOutState));
+        _speechRecognitionService.Diagnostics.RecordMilestone("UI microphone stop completed");
     }
 
     public void SetMicrophoneInputDetected(bool detected)
@@ -429,6 +451,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void OnSpeechRecognized(object? sender, SpeechRecognizedEventArgs e) =>
         Dispatcher.UIThread.Post(() =>
         {
+            _speechRecognitionService.Diagnostics.RecordMilestone("Transcript UI callback");
             CurrentPartialTranscript = null;
             ProcessRecognizedText(e.Text);
         });
@@ -436,6 +459,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void OnPartialTranscriptChanged(object? sender, PartialTranscriptEventArgs e) =>
         Dispatcher.UIThread.Post(() =>
         {
+            _speechRecognitionService.Diagnostics.RecordMilestone("Partial transcript UI status update");
             CurrentPartialTranscript = e.Text;
             VoiceRecognitionState = _speechRecognitionService.StateDescription;
             RefreshVoiceStartupDiagnostics();
@@ -444,20 +468,43 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void OnRecognitionFailed(object? sender, SpeechRecognitionFailedEventArgs e) =>
         Dispatcher.UIThread.Post(() =>
         {
+            _speechRecognitionService.Diagnostics.RecordMilestone("Recognition failure UI status update");
             VoiceCommandError = e.Exception.ToString();
-            StopVoiceRecognition();
             VoiceRecognitionState = "Recognition unavailable";
             RefreshVoiceStartupDiagnostics();
+            ObserveVoiceTask(StopVoiceRecognitionAsync(), "Recognition failure cleanup");
         });
 
     private void OnAudioFrameCaptured(object? sender, PcmAudioFrameEventArgs e)
     {
-        _speechRecognitionService.PushAudio(e.Data);
+        _speechRecognitionService.PushAudio(e.Data, e.ActivityLevel);
+        if (Interlocked.Exchange(ref _audioUiUpdatePending, 1) != 0)
+            return;
         Dispatcher.UIThread.Post(() =>
         {
-            HandleAudioLevel(e.ActivityLevel);
-            RefreshVoiceStartupDiagnostics();
+            try
+            {
+                HandleAudioLevel(e.ActivityLevel);
+                RefreshVoiceStartupDiagnostics();
+            }
+            finally { Interlocked.Exchange(ref _audioUiUpdatePending, 0); }
         });
+    }
+
+    private void ObserveVoiceTask(Task task, string operation)
+    {
+        _ = ObserveVoiceTaskCoreAsync(task, operation);
+    }
+
+    private async Task ObserveVoiceTaskCoreAsync(Task task, string operation)
+    {
+        try { await task; }
+        catch (Exception exception)
+        {
+            _speechRecognitionService.Diagnostics.RecordException(operation, exception);
+            VoiceCommandError = exception.ToString();
+            RefreshVoiceStartupDiagnostics();
+        }
     }
 
     private void RefreshVoiceStartupDiagnostics() => VoiceStartupDiagnostics = string.Join(
@@ -1098,6 +1145,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         _inputDetectedResetTimer.Stop();
+        _voiceUiHeartbeatTimer.Stop();
         _speechRecognitionService.SpeechRecognized -= OnSpeechRecognized;
         _speechRecognitionService.PartialTranscriptChanged -= OnPartialTranscriptChanged;
         _speechRecognitionService.RecognitionFailed -= OnRecognitionFailed;

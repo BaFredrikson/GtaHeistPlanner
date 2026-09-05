@@ -36,6 +36,26 @@ public sealed class OpenAiRealtimeSpeechRecognitionServiceTests
     }
 
     [Fact]
+    public async Task LocalSilenceAfterSpeech_CommitsAudioBuffer()
+    {
+        var transport = new FakeTransport();
+        using var service = Create(transport);
+        await service.StartAsync(new(48_000, 16, 1), []);
+        var fortyMillisecondsAt48Khz = new byte[3_840];
+
+        service.PushAudio(fortyMillisecondsAt48Khz, 3);
+        await transport.FirstAudioSent.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        for (var index = 0; index < 18; index++)
+        {
+            service.PushAudio(fortyMillisecondsAt48Khz, 0);
+            await Task.Delay(1);
+        }
+
+        await transport.AudioCommitted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(1, transport.CommitCount);
+    }
+
+    [Fact]
     public async Task MissingApiKey_FailsClearlyWithoutConnecting()
     {
         var transport = new FakeTransport();
@@ -57,7 +77,7 @@ public sealed class OpenAiRealtimeSpeechRecognitionServiceTests
         service.SpeechRecognized += (_, _) => recognized++;
         await service.StartAsync(new(48_000, 16, 1), []);
 
-        service.Stop();
+        await service.StopAsync();
         transport.EmitFinal("scope out");
 
         Assert.Equal(0, recognized);
@@ -79,6 +99,20 @@ public sealed class OpenAiRealtimeSpeechRecognitionServiceTests
         Assert.Equal("network unavailable", received!.Message);
     }
 
+    [Fact]
+    public async Task StopAsync_DoesNotSynchronouslyBlockWhileTransportIsClosing()
+    {
+        var transport = new FakeTransport { DelayClose = true };
+        using var service = Create(transport);
+        await service.StartAsync(new(48_000, 16, 1), []);
+
+        var stop = service.StopAsync();
+
+        Assert.False(stop.IsCompleted);
+        transport.CompleteClose();
+        await stop.WaitAsync(TimeSpan.FromSeconds(1));
+    }
+
     private static OpenAiRealtimeSpeechRecognitionService Create(FakeTransport transport) =>
         new(() => transport, () => "test-key-not-sent");
 
@@ -90,6 +124,11 @@ public sealed class OpenAiRealtimeSpeechRecognitionServiceTests
         public event EventHandler<string>? StateChanged;
         public bool Connected { get; private set; }
         public bool Closed { get; private set; }
+        public bool DelayClose { get; init; }
+        public int CommitCount { get; private set; }
+        public TaskCompletionSource FirstAudioSent { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource AudioCommitted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _closeCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Task ConnectAsync(string apiKey, RealtimeTranscriptionOptions options, CancellationToken cancellationToken)
         {
@@ -98,11 +137,26 @@ public sealed class OpenAiRealtimeSpeechRecognitionServiceTests
             return Task.CompletedTask;
         }
 
-        public ValueTask SendAudioAsync(ReadOnlyMemory<byte> pcm24KhzMono, CancellationToken cancellationToken) => ValueTask.CompletedTask;
-        public Task CloseAsync(CancellationToken cancellationToken) { Closed = true; return Task.CompletedTask; }
+        public ValueTask SendAudioAsync(ReadOnlyMemory<byte> pcm24KhzMono, CancellationToken cancellationToken)
+        {
+            FirstAudioSent.TrySetResult();
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CommitAudioAsync(CancellationToken cancellationToken)
+        {
+            CommitCount++;
+            AudioCommitted.TrySetResult();
+            return ValueTask.CompletedTask;
+        }
+        public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            Closed = true;
+            return DelayClose ? _closeCompletion.Task : Task.CompletedTask;
+        }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public void EmitPartial(string text) => PartialTranscript?.Invoke(this, text);
         public void EmitFinal(string text) => FinalTranscript?.Invoke(this, text);
         public void EmitFailure(Exception exception) => Failed?.Invoke(this, exception);
+        public void CompleteClose() => _closeCompletion.TrySetResult();
     }
 }

@@ -11,6 +11,6 @@ public interface ISpeechRecognitionService : IDisposable
     string StateDescription { get; }
     VoiceDiagnosticTrace Diagnostics { get; }
     Task StartAsync(PcmAudioFormat format, IReadOnlyCollection<string> keywords, CancellationToken cancellationToken = default);
-    void PushAudio(ReadOnlyMemory<byte> pcmAudio);
-    void Stop();
+    void PushAudio(ReadOnlyMemory<byte> pcmAudio, int activityLevel);
+    Task StopAsync(CancellationToken cancellationToken = default);
 }
