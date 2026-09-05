@@ -5,6 +5,8 @@
 
 # dotenv files
 .env
+.env.*
+!.env.example
 assets/*
 !assets/.gitkeep
 analysis/
