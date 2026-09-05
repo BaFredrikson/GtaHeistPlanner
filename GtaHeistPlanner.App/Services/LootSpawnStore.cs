@@ -8,9 +8,12 @@ public sealed class LootSpawnStore
     private static readonly Uri BundledCatalog =
         new("avares://GtaHeistPlanner.App/Data/kortz/kortz_loot_spawns.json");
 
-    public string FilePath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "GtaHeistPlanner", "data", "kortz_loot_spawns.json");
+    public LootSpawnStore(string? filePath = null)
+    {
+        FilePath = filePath ?? ProjectDataPath.KortzFile("kortz_loot_spawns.json");
+    }
+
+    public string FilePath { get; }
 
     public IReadOnlyList<LootSpawnDefinition> Load()
     {

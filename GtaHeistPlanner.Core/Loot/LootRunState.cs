@@ -31,6 +31,13 @@ public sealed class LootRunState
 
     public void SetLootPresent(string spawnId, bool value) => GetState(spawnId).IsPresent = value;
 
+    public void RecordScopedLoot(string spawnId, int? scopedValue)
+    {
+        var state = GetState(spawnId);
+        state.IsPresent = true;
+        state.ScopedValue = scopedValue;
+    }
+
     public void SetLooted(string spawnId, bool value) => GetState(spawnId).IsLooted = value;
 
     public bool TrySetBuyersRequest(string spawnId, bool value, out string? error)

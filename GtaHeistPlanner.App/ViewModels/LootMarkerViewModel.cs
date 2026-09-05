@@ -8,6 +8,7 @@ public partial class LootMarkerViewModel : ViewModelBase
     private readonly LootSpawnState _state;
     public string Id { get; }
     public string MapId { get; }
+    public IReadOnlyList<string> VoiceAliases { get; }
 
     [ObservableProperty] public partial string Name { get; set; }
     [ObservableProperty] public partial LootType Type { get; set; }
@@ -52,6 +53,7 @@ public partial class LootMarkerViewModel : ViewModelBase
         _state = state;
         Id = definition.Id;
         MapId = definition.MapId;
+        VoiceAliases = definition.VoiceAliases;
         Name = definition.Name;
         Type = definition.Type;
         X = definition.X;
@@ -60,7 +62,10 @@ public partial class LootMarkerViewModel : ViewModelBase
         ApplyState(state);
     }
 
-    public LootSpawnDefinition ToDefinition() => new(Id, MapId, Name, Type, X, Y, ZoneId);
+    public LootSpawnDefinition ToDefinition() => new(Id, MapId, Name, Type, X, Y, ZoneId)
+    {
+        VoiceAliases = VoiceAliases,
+    };
 
     public void ApplyState(LootSpawnState state)
     {
@@ -84,5 +89,12 @@ public partial class LootMarkerViewModel : ViewModelBase
         OnPropertyChanged(nameof(EstimatedValueDisplay));
         OnPropertyChanged(nameof(PrepDisplay));
     }
-    partial void OnScopedValueChanged(int? value) => _state.ScopedValue = value;
+    partial void OnScopedValueChanged(int? value)
+    {
+        _state.ScopedValue = value;
+        if (value is null)
+            return;
+        _state.IsPresent = true;
+        IsPresent = true;
+    }
 }

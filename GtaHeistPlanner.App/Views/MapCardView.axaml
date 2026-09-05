@@ -3,7 +3,7 @@
              xmlns:controls="using:GtaHeistPlanner.App.Controls"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
              x:Class="GtaHeistPlanner.App.Views.MapCardView" x:DataType="vm:MapCardViewModel">
-  <Border Margin="4" Padding="6" MinHeight="520" Background="#0B0E12"
+  <Border Margin="4" Padding="6" Background="#0B0E12"
           BorderBrush="#303946" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
     <Grid RowDefinitions="Auto,*">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="5">

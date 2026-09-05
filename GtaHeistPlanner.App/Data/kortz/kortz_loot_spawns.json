@@ -1,3 +1,338 @@
 {
-  "spawns": []
+  "spawns": [
+    {
+      "id": "basement-loot-01",
+      "mapId": "basement",
+      "name": "Truck Cargo",
+      "type": "LoadingBayCargo",
+      "voiceAliases": [
+        "loading bay cargo",
+        "truck cargo"
+      ],
+      "x": 0.4397344228804903,
+      "y": 0.4618360440517605,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-02",
+      "mapId": "basement",
+      "name": "Vault Painting right right",
+      "type": "Painting",
+      "x": 0.22012257405515834,
+      "y": 0.9045379330513388,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-03",
+      "mapId": "basement",
+      "name": "Vault Painting left left",
+      "type": "Painting",
+      "x": 0.28855975485188967,
+      "y": 0.9045379330513388,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-04",
+      "mapId": "basement",
+      "name": "Vault Painting left right",
+      "type": "Painting",
+      "x": 0.28855975485188967,
+      "y": 0.9410057131796565,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-05",
+      "mapId": "basement",
+      "name": "Vault Painting right left",
+      "type": "Painting",
+      "x": 0.22012257405515834,
+      "y": 0.937613361539813,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-06",
+      "mapId": "basement",
+      "name": "Loot 06",
+      "type": "SafetyDepositBoxes",
+      "x": 0.22676200204290092,
+      "y": 0.8638297133732166,
+      "zoneId": null
+    },
+    {
+      "id": "basement-loot-07",
+      "mapId": "basement",
+      "name": "Loot 07",
+      "type": "SafetyDepositBoxes",
+      "x": 0.27936670071501535,
+      "y": 0.8638297133732166,
+      "zoneId": null
+    },
+    {
+      "id": "lower-floor-loot-01",
+      "mapId": "lower-floor",
+      "name": "Bottom target rings",
+      "type": "CoquardJewelry",
+      "x": 0.17766403607666292,
+      "y": 0.9072,
+      "zoneId": null
+    },
+    {
+      "id": "lower-floor-loot-02",
+      "mapId": "lower-floor",
+      "name": "Bottom target egg",
+      "type": "FertilityStatue",
+      "x": 0.27642690717775276,
+      "y": 0.9072,
+      "zoneId": null
+    },
+    {
+      "id": "lower-floor-loot-03",
+      "mapId": "lower-floor",
+      "name": "Bottom target diamond skull",
+      "type": "VerticalDisplayGlassCase",
+      "x": 0.3100714017286734,
+      "y": 0.9072,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-01",
+      "mapId": "main-floor",
+      "name": "Main rings and bracelets south south",
+      "type": "CoquardJewelry",
+      "x": 0.5466681698609546,
+      "y": 0.4272,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-02",
+      "mapId": "main-floor",
+      "name": "Main rings and bracelets south mid",
+      "type": "CoquardJewelry",
+      "x": 0.5466681698609546,
+      "y": 0.4608,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-03",
+      "mapId": "main-floor",
+      "name": "Main rings and bracelets north east",
+      "type": "CoquardJewelry",
+      "x": 0.5466681698609546,
+      "y": 0.7416,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-04",
+      "mapId": "main-floor",
+      "name": "Main rings and bracelets north west",
+      "type": "CoquardJewelry",
+      "x": 0.7365967681322811,
+      "y": 0.8928,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-05",
+      "mapId": "main-floor",
+      "name": "Painting La Duchesse",
+      "type": "Painting",
+      "x": 0.643260428410372,
+      "y": 0.8048,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-06",
+      "mapId": "main-floor",
+      "name": "Painting Do You See Me",
+      "type": "Painting",
+      "x": 0.6291514468245021,
+      "y": 0.7152,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-07",
+      "mapId": "main-floor",
+      "name": "Painting Explain Yourself",
+      "type": "Painting",
+      "x": 0.7246583990980834,
+      "y": 0.768,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-08",
+      "mapId": "main-floor",
+      "name": "Painting The Chief",
+      "type": "Painting",
+      "x": 0.6269808342728298,
+      "y": 0.476,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-09",
+      "mapId": "main-floor",
+      "name": "Painting orange crush",
+      "type": "Painting",
+      "x": 0.6389192033070275,
+      "y": 0.388,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-10",
+      "mapId": "main-floor",
+      "name": "Painting Canis Hominem Edit",
+      "type": "Painting",
+      "x": 0.721402480270575,
+      "y": 0.4224,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-11",
+      "mapId": "main-floor",
+      "name": "Main rings and bracelets south",
+      "voiceAliases": [
+        "south rings",
+        "south jewelry"
+      ],
+      "type": "CoquardJewelry",
+      "x": 0.37648863968090784,
+      "y": 0.39941262848751835,
+      "zoneId": null
+    },
+    {
+      "id": "main-floor-loot-12",
+      "mapId": "main-floor",
+      "name": "Main fertility statue",
+      "type": "FertilityStatue",
+      "x": 0.13099586621570838,
+      "y": 0.584,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-01",
+      "mapId": "upper-floor",
+      "name": "Upper painting cook",
+      "voiceAliases": [
+        "upper cook painting"
+      ],
+      "type": "Painting",
+      "x": 0.2699150695227358,
+      "y": 0.7864,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-02",
+      "mapId": "upper-floor",
+      "name": "Upper painting shotgun",
+      "type": "Painting",
+      "x": 0.2742562946260804,
+      "y": 0.6952,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-03",
+      "mapId": "upper-floor",
+      "name": "Upper rings and bracelets",
+      "voiceAliases": [
+        "upper rings",
+        "upper jewelry"
+      ],
+      "type": "CoquardJewelry",
+      "x": 0.7702412626832018,
+      "y": 0.756,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-04",
+      "mapId": "upper-floor",
+      "name": "Upper necklace",
+      "type": "VerticalDisplayGlassCase",
+      "x": 0.771326568959038,
+      "y": 0.5392,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-05",
+      "mapId": "upper-floor",
+      "name": "Upper horse statue",
+      "type": "VerticalDisplayGlassCase",
+      "x": 0.7702412626832018,
+      "y": 0.6376,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-06",
+      "mapId": "upper-floor",
+      "name": "Upper egg",
+      "type": "CoquardJewelry",
+      "x": 0.7745824877865464,
+      "y": 0.4312,
+      "zoneId": null
+    },
+    {
+      "id": "upper-floor-loot-07",
+      "mapId": "upper-floor",
+      "name": "Gallery Painting Don\u0027t Forgo These Blueprints",
+      "type": "Painting",
+      "x": 0.9059045471627207,
+      "y": 0.8544,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-08",
+      "mapId": "upper-floor",
+      "name": "Gallery Painting The Great Circle Back",
+      "type": "Painting",
+      "x": 0.7463645246148064,
+      "y": 0.8128,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-09",
+      "mapId": "upper-floor",
+      "name": "Gallery fertility statue",
+      "type": "FertilityStatue",
+      "x": 0.8207311130866748,
+      "y": 0.8869309838472834,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-10",
+      "mapId": "upper-floor",
+      "name": "Gallery diamond",
+      "type": "VerticalDisplayGlassCase",
+      "x": 0.6736490041337843,
+      "y": 0.8872,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-12",
+      "mapId": "upper-floor",
+      "name": "Gallery meteor fragment",
+      "type": "FertilityStatue",
+      "x": 0.5412416384817738,
+      "y": 0.8872,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-13",
+      "mapId": "upper-floor",
+      "name": "Gallery venus statue",
+      "type": "VerticalDisplayGlassCase",
+      "x": 0.5423269447576099,
+      "y": 0.8136,
+      "zoneId": "crisp-gallery"
+    },
+    {
+      "id": "upper-floor-loot-14",
+      "mapId": "upper-floor",
+      "name": "Gallery rings and bracelets",
+      "voiceAliases": [
+        "gallery rings",
+        "gallery jewelry"
+      ],
+      "type": "CoquardJewelry",
+      "x": 0.4663555054490793,
+      "y": 0.8144,
+      "zoneId": "crisp-gallery"
+    }
+  ]
 }

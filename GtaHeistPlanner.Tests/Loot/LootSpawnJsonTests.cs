@@ -8,7 +8,10 @@ public sealed class LootSpawnJsonTests
     [Fact]
     public void RoundTripPreservesDefinitionsAndUsesStringEnum()
     {
-        var expected = new LootSpawnDefinition("main-west-01", "main-floor", "West Gallery 01", LootType.Painting, .42, .31);
+        var expected = new LootSpawnDefinition("main-west-01", "main-floor", "West Gallery 01", LootType.Painting, .42, .31)
+        {
+            VoiceAliases = ["west painting"],
+        };
         using var stream = new MemoryStream();
 
         LootSpawnJson.Save(stream, [expected]);
@@ -17,7 +20,14 @@ public sealed class LootSpawnJsonTests
         var actual = LootSpawnJson.Load(stream);
 
         Assert.Contains("\"type\": \"Painting\"", json);
-        Assert.Equal(expected, Assert.Single(actual.Spawns));
+        var loaded = Assert.Single(actual.Spawns);
+        Assert.Equal(expected.Id, loaded.Id);
+        Assert.Equal(expected.MapId, loaded.MapId);
+        Assert.Equal(expected.Name, loaded.Name);
+        Assert.Equal(expected.Type, loaded.Type);
+        Assert.Equal(expected.X, loaded.X);
+        Assert.Equal(expected.Y, loaded.Y);
+        Assert.Equal(expected.VoiceAliases, loaded.VoiceAliases);
     }
 
     [Fact]

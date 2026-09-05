@@ -78,16 +78,15 @@
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !HasFocusedMap}">
-            <ItemsControl ItemsSource="{Binding VisibleMapCards}">
+          <ItemsControl ItemsSource="{Binding VisibleMapCards}" IsVisible="{Binding !HasFocusedMap}"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MapCardViewModel">
                   <views:MapCardView />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
+          </ItemsControl>
           <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasFocusedMap}">
             <Button HorizontalAlignment="Left" Margin="5,0,0,4" Padding="12,5" Content="← Back to map overview"
                     Command="{Binding ExitMapFocusCommand}" />
@@ -124,6 +123,9 @@
                     <TextBlock Text="{Binding SelectedLoot.Economics.DisplayName}" FontSize="11" />
                     <TextBlock Text="{Binding SelectedLoot.Economics.BagPercent, StringFormat='Bag usage: {0}%'}" FontSize="11" />
                     <TextBlock Text="{Binding SelectedLoot.EstimatedValueDisplay, StringFormat='Estimated: {0}'}" FontSize="11" />
+                    <TextBlock Text="Exact scoped value" FontSize="10" Foreground="#98A4B3" />
+                    <NumericUpDown Value="{Binding SelectedLoot.ScopedValue}" Minimum="0" Maximum="10000000"
+                                   Increment="1000" FormatString="N0" AllowSpin="True" />
                     <TextBlock Text="{Binding SelectedLoot.AccessDisplay}" FontSize="11" TextWrapping="Wrap" />
                     <CheckBox Content="Present" IsChecked="{Binding SelectedLoot.IsPresent, Mode=OneWay}" Command="{Binding ToggleLootPresentCommand}" />
                     <CheckBox Content="Buyer's Request" IsChecked="{Binding SelectedLoot.IsBuyersRequest, Mode=OneWay}" Command="{Binding ToggleBuyersRequestCommand}" />
@@ -151,6 +153,22 @@
 
                 <StackPanel Spacing="7" IsVisible="{Binding DeveloperMode}">
                   <Separator Margin="0,8,0,3" /><TextBlock Text="DEVELOPER TOOLS" FontWeight="Bold" Foreground="#E8A65A" />
+                  <StackPanel Spacing="5" IsVisible="{Binding IsPreparationStage}">
+                    <TextBlock Text="VOICE SCOPE-OUT" FontWeight="Bold" Foreground="#75CFF4" />
+                    <TextBlock Text="{Binding VoiceRecognitionState, StringFormat='Recognition: {0}'}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ConfiguredCaptureDevice, StringFormat='Capture: {0}'}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding TransmittedAudioFormat, StringFormat='Transmitted: {0}'}" FontSize="10" />
+                    <TextBlock Text="{Binding ScopeOutState, StringFormat='Session: {0}'}" FontSize="10" />
+                    <TextBlock Text="{Binding CurrentPartialTranscript, StringFormat='Partial: {0}', TargetNullValue='Partial: —'}" FontSize="10" Foreground="#E8A65A" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LastRecognizedText, StringFormat='Heard: {0}', TargetNullValue='Heard: —'}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LastParsedVoiceCommand, StringFormat='Parsed: {0}', TargetNullValue='Parsed: —'}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LastVoiceLootUpdate, StringFormat='Applied: {0}', TargetNullValue='Applied: —'}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding VoiceCommandError, StringFormat='Error: {0}'}" FontSize="10" Foreground="#FFB8B8" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding VoiceStartupDiagnostics}" FontFamily="Consolas" FontSize="9"
+                               Foreground="#98A4B3" TextWrapping="Wrap" />
+                    <TextBox Text="{Binding VoiceSimulatorText}" PlaceholderText="scope out" />
+                    <Button Content="Simulate recognized text" Command="{Binding SimulateRecognizedTextCommand}" />
+                  </StackPanel>
                   <CheckBox Content="Edit loot locations" IsChecked="{Binding IsLootEditMode}" IsVisible="{Binding IsLootStage}" />
                   <TextBlock Text="Click to add; drag to reposition." FontSize="10" Foreground="#98A4B3" IsVisible="{Binding IsLootAuthoringEnabled}" />
                   <StackPanel Spacing="5" IsVisible="{Binding IsLootAuthoringEnabled}">
@@ -182,7 +200,7 @@
 
                     <TextBlock Text="Selected camera" FontWeight="SemiBold" />
                     <TextBox Text="{Binding SelectedSecurityCamera.Name}" PlaceholderText="Select a camera" />
-                    <TextBlock Text="Rotation (degrees)" FontSize="10" />
+                    <TextBlock Text="Rotation / heading (degrees)" FontSize="10" />
                     <NumericUpDown Value="{Binding SelectedSecurityCamera.RotationDegrees}" Minimum="-360" Maximum="360" Increment="5" />
                     <TextBlock Text="Field of view (degrees)" FontSize="10" />
                     <NumericUpDown Value="{Binding SelectedSecurityCamera.FovDegrees}" Minimum="1" Maximum="179" Increment="1" />
@@ -226,6 +244,32 @@
           </Border>
         </Grid>
     </Grid>
+
+    <Border Grid.RowSpan="3" Width="430" MaxHeight="220" Margin="18"
+            HorizontalAlignment="Left" VerticalAlignment="Bottom" ZIndex="50"
+            Padding="12" Background="#F2181E26" BorderBrush="#E24B4B" BorderThickness="1"
+            CornerRadius="8" IsVisible="{Binding IsMicrophoneOpen}">
+      <Grid RowDefinitions="Auto,*" RowSpacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding MicrophoneColor}" />
+            <TextBlock Text="LIVE RECOGNITION" FontWeight="Bold" Foreground="#E8EDF3" />
+            <TextBlock Text="{Binding ScopeOutState}" Foreground="#98A4B3" />
+          </StackPanel>
+          <Button Grid.Column="1" Content="Clear" Padding="8,2" Command="{Binding ClearVoiceTranscriptCommand}" />
+        </Grid>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding VoiceTranscript}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:VoiceTranscriptEntry">
+                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" FontSize="14"
+                           FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
 
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsSettingsOpen}" ZIndex="100">
       <Border Width="480" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"

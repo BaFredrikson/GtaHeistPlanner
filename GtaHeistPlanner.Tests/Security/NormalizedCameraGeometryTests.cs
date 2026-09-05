@@ -64,6 +64,23 @@ public sealed class NormalizedCameraGeometryTests
         AssertAngle(heading, sector.Origin, sector.CenterLineEnd);
     }
 
+    [Fact]
+    public void NonSquareMapPreservesCircularArcAndScreenSpaceAngles()
+    {
+        const double aspectRatio = 2;
+        var sector = NormalizedCameraGeometry.Create(
+            new("camera", "map", "Camera", .5, .5, 0, 60, .3), aspectRatio);
+
+        var leftDx = (sector.FarArc[0].X - sector.Origin.X) * aspectRatio;
+        var leftDy = sector.FarArc[0].Y - sector.Origin.Y;
+        var centerDx = (sector.CenterLineEnd.X - sector.Origin.X) * aspectRatio;
+        var centerDy = sector.CenterLineEnd.Y - sector.Origin.Y;
+
+        Assert.Equal(.3, Math.Sqrt(leftDx * leftDx + leftDy * leftDy), 10);
+        Assert.Equal(.3, Math.Sqrt(centerDx * centerDx + centerDy * centerDy), 10);
+        Assert.Equal(330, NormalizeAngle(Math.Atan2(leftDy, leftDx) * 180 / Math.PI), 9);
+    }
+
     private static NormalizedVisionSector Create(double heading, double fov, double range) =>
         NormalizedCameraGeometry.Create(new("camera", "map", "Camera", .5, .5, heading, fov, range));
 

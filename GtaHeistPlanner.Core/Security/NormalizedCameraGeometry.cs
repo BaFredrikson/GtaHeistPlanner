@@ -15,10 +15,15 @@ public static class NormalizedCameraGeometry
     public const int DefaultArcSegments = 18;
     public const double NearRadiusRatio = 0.03;
 
-    public static NormalizedVisionSector Create(SecurityCameraDefinition camera, int arcSegments = DefaultArcSegments)
+    public static NormalizedVisionSector Create(
+        SecurityCameraDefinition camera,
+        double mapAspectRatio = 1,
+        int arcSegments = DefaultArcSegments)
     {
         if (camera.FovDegrees is <= 0 or >= 180 || camera.Range <= 0)
             throw new ArgumentOutOfRangeException(nameof(camera));
+        if (!double.IsFinite(mapAspectRatio) || mapAspectRatio <= 0)
+            throw new ArgumentOutOfRangeException(nameof(mapAspectRatio));
         if (arcSegments < 2)
             throw new ArgumentOutOfRangeException(nameof(arcSegments));
 
@@ -30,20 +35,24 @@ public static class NormalizedCameraGeometry
         for (var index = 0; index <= arcSegments; index++)
         {
             var angle = startAngle + (endAngle - startAngle) * index / arcSegments;
-            arc.Add(Endpoint(origin, angle, camera.Range));
+            arc.Add(Endpoint(origin, angle, camera.Range, mapAspectRatio));
         }
 
         return new(origin,
-            Endpoint(origin, startAngle, nearRadius),
+            Endpoint(origin, startAngle, nearRadius, mapAspectRatio),
             arc,
-            Endpoint(origin, endAngle, nearRadius),
-            Endpoint(origin, camera.RotationDegrees, camera.Range),
+            Endpoint(origin, endAngle, nearRadius, mapAspectRatio),
+            Endpoint(origin, camera.RotationDegrees, camera.Range, mapAspectRatio),
             nearRadius);
     }
 
-    private static MapPoint Endpoint(MapPoint origin, double degrees, double range)
+    private static MapPoint Endpoint(MapPoint origin, double degrees, double range, double mapAspectRatio)
     {
         var radians = degrees * Math.PI / 180;
-        return new(origin.X + Math.Cos(radians) * range, origin.Y + Math.Sin(radians) * range);
+        // Range is expressed relative to map height. Compensating normalized X by
+        // the fitted map's width/height ratio keeps angles and radii circular on screen.
+        return new(
+            origin.X + Math.Cos(radians) * range / mapAspectRatio,
+            origin.Y + Math.Sin(radians) * range);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
 using GtaHeistPlanner.App.Models;
 using GtaHeistPlanner.App.Services;
 using GtaHeistPlanner.Core.Maps;
@@ -12,10 +13,11 @@ using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Core.Settings;
 using GtaHeistPlanner.Core.Sewer;
 using GtaHeistPlanner.Core.Security;
+using GtaHeistPlanner.Voice;
 
 namespace GtaHeistPlanner.App.ViewModels;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IDisposable
 {
     public const string ExteriorFirstFloorMapId = "exterior-firstfloor";
     private readonly MapCalibrationStore _calibrationStore = new();
@@ -28,6 +30,10 @@ public partial class MainViewModel : ViewModelBase
     private ApplicationSettings? _settingsSnapshot;
     private LootRunState _lootRun = new([]);
     private bool _updatingCalibrationFields;
+    private readonly ISpeechRecognitionService _speechRecognitionService;
+    private readonly IAudioCaptureService _audioCaptureService;
+    private readonly DispatcherTimer _inputDetectedResetTimer;
+    private ScopeOutVoiceSession? _scopeOutSession;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedMapAssetUri))]
@@ -82,6 +88,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MicrophoneColor))]
     [NotifyPropertyChangedFor(nameof(MicrophoneStatusText))]
+    [NotifyPropertyChangedFor(nameof(IsMicrophoneOpen))]
     public partial MicrophoneStatus MicrophoneStatus { get; set; } = MicrophoneStatus.Off;
     [ObservableProperty] public partial bool IsSettingsOpen { get; set; }
     [ObservableProperty]
@@ -90,7 +97,9 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
-    [ObservableProperty] public partial RecordingDeviceInfo? SelectedRecordingDevice { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConfiguredCaptureDevice))]
+    public partial RecordingDeviceInfo? SelectedRecordingDevice { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasHoveredMarker))]
     public partial string? HoveredMarker { get; set; }
@@ -121,6 +130,14 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial int SecurityRevision { get; set; }
     [ObservableProperty] public partial string? SecurityStatus { get; set; }
     [ObservableProperty] public partial string? VaultCode { get; set; }
+    [ObservableProperty] public partial string VoiceRecognitionState { get; set; } = "Stopped";
+    [ObservableProperty] public partial string? LastRecognizedText { get; set; }
+    [ObservableProperty] public partial string? LastParsedVoiceCommand { get; set; }
+    [ObservableProperty] public partial string? VoiceCommandError { get; set; }
+    [ObservableProperty] public partial string? LastVoiceLootUpdate { get; set; }
+    [ObservableProperty] public partial string VoiceSimulatorText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string? VoiceStartupDiagnostics { get; set; }
+    [ObservableProperty] public partial string? CurrentPartialTranscript { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFocusedMap))]
     [NotifyPropertyChangedFor(nameof(FocusedMapCard))]
@@ -129,6 +146,7 @@ public partial class MainViewModel : ViewModelBase
     public ObservableCollection<MapDefinition> Maps { get; } = [];
     public ObservableCollection<LootMarkerViewModel> LootMarkers { get; } = [];
     public ObservableCollection<RecordingDeviceInfo> RecordingDevices { get; } = [];
+    public ObservableCollection<VoiceTranscriptEntry> VoiceTranscript { get; } = [];
     public ObservableCollection<SewerPath> SewerPaths { get; } = [];
     public ObservableCollection<SewerConnection> SewerConnections { get; } = [];
     public ObservableCollection<string> HighlightedSewerPathIds { get; } = [];
@@ -192,6 +210,7 @@ public partial class MainViewModel : ViewModelBase
         MicrophoneStatus.InputDetected => "Microphone input detected",
         _ => "Microphone",
     };
+    public bool IsMicrophoneOpen => MicrophoneStatus != MicrophoneStatus.Off;
     public PlayerCountOption SelectedPlayerCountOption
     {
         get => PlayerCountOptions.Single(option => option.Count == PlayerCount);
@@ -224,9 +243,33 @@ public partial class MainViewModel : ViewModelBase
     public string SettingsPath => _settingsStore.FilePath;
     public string SewerGraphPath => _sewerGraphStore.FilePath;
     public string SecurityDataPath => _securityDatasetStore.FilePath;
+    public ScopeOutSessionState ScopeOutState => _scopeOutSession?.State ?? ScopeOutSessionState.Inactive;
 
-    public MainViewModel()
+    public string ConfiguredCaptureDevice => SelectedRecordingDevice is null
+        ? "No recording device selected"
+        : $"{SelectedRecordingDevice.Name} ({SelectedRecordingDevice.Id})";
+    public string TransmittedAudioFormat => "24,000 Hz, 16-bit mono PCM";
+
+    public MainViewModel() : this(new OpenAiRealtimeSpeechRecognitionService(), new WasapiAudioCaptureService())
     {
+    }
+
+    public MainViewModel(
+        ISpeechRecognitionService speechRecognitionService,
+        IAudioCaptureService audioCaptureService)
+    {
+        _speechRecognitionService = speechRecognitionService;
+        _audioCaptureService = audioCaptureService;
+        _inputDetectedResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _inputDetectedResetTimer.Tick += (_, _) =>
+        {
+            _inputDetectedResetTimer.Stop();
+            SetMicrophoneInputDetected(false);
+        };
+        _speechRecognitionService.SpeechRecognized += OnSpeechRecognized;
+        _speechRecognitionService.PartialTranscriptChanged += OnPartialTranscriptChanged;
+        _speechRecognitionService.RecognitionFailed += OnRecognitionFailed;
+        _audioCaptureService.FrameCaptured += OnAudioFrameCaptured;
         LoadSettings();
         ApplyStagePolicy();
         _initialCalibration = new MapCalibration();
@@ -271,6 +314,11 @@ public partial class MainViewModel : ViewModelBase
 
     partial void OnCurrentStageChanged(PlannerStage value)
     {
+        if (value != PlannerStage.Preparation && ScopeOutState == ScopeOutSessionState.Active)
+        {
+            _scopeOutSession?.SetListening(MicrophoneStatus != MicrophoneStatus.Off);
+            OnPropertyChanged(nameof(ScopeOutState));
+        }
         ApplyStagePolicy();
         SelectedLoot = null;
         HoveredMarker = null;
@@ -314,17 +362,61 @@ public partial class MainViewModel : ViewModelBase
     partial void OnMicrophoneEnabledChanged(bool value)
     {
         if (!value)
-            MicrophoneStatus = MicrophoneStatus.Off;
+            StopVoiceRecognition();
     }
 
     [RelayCommand]
-    private void ToggleMicrophone()
+    private async Task ToggleMicrophone()
     {
         if (!MicrophoneEnabled)
             return;
-        MicrophoneStatus = MicrophoneStatus == MicrophoneStatus.Off
-            ? MicrophoneStatus.Listening
-            : MicrophoneStatus.Off;
+        if (MicrophoneStatus == MicrophoneStatus.Off)
+            await StartVoiceRecognitionAsync();
+        else
+            StopVoiceRecognition();
+    }
+
+    private async Task StartVoiceRecognitionAsync()
+    {
+        try
+        {
+            var endpointId = SelectedRecordingDevice?.Id
+                ?? throw new InvalidOperationException("No recording device is selected. Choose one in Settings.");
+            _audioCaptureService.Start(endpointId);
+            var keywords = LootMarkers
+                .SelectMany(marker => marker.VoiceAliases.Append(marker.Name))
+                .Concat(["scope out", "stop scope out", "painting", "rings", "loading bay cargo",
+                    "safety deposit boxes", "Buyer's Request", "Glass Cutter", "Power Drills", "Coquard"])
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            await _speechRecognitionService.StartAsync(_audioCaptureService.Format, keywords);
+            MicrophoneStatus = MicrophoneStatus.Listening;
+            _scopeOutSession?.SetListening(true);
+            VoiceRecognitionState = _speechRecognitionService.StateDescription;
+            RefreshVoiceStartupDiagnostics();
+            VoiceCommandError = null;
+        }
+        catch (Exception exception)
+        {
+            _audioCaptureService.Stop();
+            MicrophoneStatus = MicrophoneStatus.Off;
+            _scopeOutSession?.SetListening(false);
+            VoiceRecognitionState = "Recognition unavailable";
+            VoiceCommandError = exception.ToString();
+            RefreshVoiceStartupDiagnostics();
+        }
+        OnPropertyChanged(nameof(ScopeOutState));
+    }
+
+    private void StopVoiceRecognition()
+    {
+        _inputDetectedResetTimer.Stop();
+        _audioCaptureService.Stop();
+        _speechRecognitionService.Stop();
+        MicrophoneStatus = MicrophoneStatus.Off;
+        _scopeOutSession?.SetListening(false);
+        VoiceRecognitionState = _speechRecognitionService.StateDescription;
+        OnPropertyChanged(nameof(ScopeOutState));
     }
 
     public void SetMicrophoneInputDetected(bool detected)
@@ -332,6 +424,110 @@ public partial class MainViewModel : ViewModelBase
         if (!MicrophoneEnabled || MicrophoneStatus == MicrophoneStatus.Off)
             return;
         MicrophoneStatus = detected ? MicrophoneStatus.InputDetected : MicrophoneStatus.Listening;
+    }
+
+    private void OnSpeechRecognized(object? sender, SpeechRecognizedEventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            CurrentPartialTranscript = null;
+            ProcessRecognizedText(e.Text);
+        });
+
+    private void OnPartialTranscriptChanged(object? sender, PartialTranscriptEventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            CurrentPartialTranscript = e.Text;
+            VoiceRecognitionState = _speechRecognitionService.StateDescription;
+            RefreshVoiceStartupDiagnostics();
+        });
+
+    private void OnRecognitionFailed(object? sender, SpeechRecognitionFailedEventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            VoiceCommandError = e.Exception.ToString();
+            StopVoiceRecognition();
+            VoiceRecognitionState = "Recognition unavailable";
+            RefreshVoiceStartupDiagnostics();
+        });
+
+    private void OnAudioFrameCaptured(object? sender, PcmAudioFrameEventArgs e)
+    {
+        _speechRecognitionService.PushAudio(e.Data);
+        Dispatcher.UIThread.Post(() =>
+        {
+            HandleAudioLevel(e.ActivityLevel);
+            RefreshVoiceStartupDiagnostics();
+        });
+    }
+
+    private void RefreshVoiceStartupDiagnostics() => VoiceStartupDiagnostics = string.Join(
+        Environment.NewLine,
+        _audioCaptureService.Diagnostics.Entries.Concat(_speechRecognitionService.Diagnostics.Entries));
+
+    private void HandleAudioLevel(int level)
+    {
+        if (level < 3 || MicrophoneStatus == MicrophoneStatus.Off)
+            return;
+        SetMicrophoneInputDetected(true);
+        _inputDetectedResetTimer.Stop();
+        _inputDetectedResetTimer.Start();
+    }
+
+    [RelayCommand]
+    private void SimulateRecognizedText()
+    {
+        ProcessRecognizedText(VoiceSimulatorText);
+    }
+
+    public void ProcessRecognizedText(string text)
+    {
+        LastRecognizedText = text;
+        LastParsedVoiceCommand = null;
+        VoiceCommandError = null;
+
+        if (MicrophoneStatus == MicrophoneStatus.Off || _scopeOutSession is null)
+        {
+            VoiceCommandError = "Microphone is off.";
+            AddVoiceTranscript(text, false);
+            return;
+        }
+        if (CurrentStage != PlannerStage.Preparation)
+        {
+            VoiceCommandError = "Scope-out commands are only available during Preparation.";
+            AddVoiceTranscript(text, false);
+            return;
+        }
+
+        var result = _scopeOutSession.Process(text);
+        LastParsedVoiceCommand = result.ParseResult.Command?.GetType().Name
+            ?? result.ParseResult.Disposition.ToString();
+        VoiceCommandError = result.Error;
+        AddVoiceTranscript(text, result.ParseResult.Command is not null);
+        OnPropertyChanged(nameof(ScopeOutState));
+
+        if (result.UpdatedLootLocationId is not { } lootId)
+            return;
+        var marker = LootMarkers.Single(item => item.Id == lootId);
+        marker.ApplyState(_lootRun.GetState(lootId));
+        SelectedLoot = marker;
+        LootRevision++;
+        LastVoiceLootUpdate = result.ScopedValue is { } value
+            ? $"{lootId} = ${value:N0}"
+            : $"{lootId} marked present";
+        LootStatus = $"Voice scope-out updated {marker.Name}.";
+        RefreshPlanningSummary();
+    }
+
+    [RelayCommand]
+    private void ClearVoiceTranscript() => VoiceTranscript.Clear();
+
+    private void AddVoiceTranscript(string text, bool isCommand)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+        VoiceTranscript.Add(new(text.Trim(), isCommand));
+        while (VoiceTranscript.Count > 12)
+            VoiceTranscript.RemoveAt(0);
     }
 
     [RelayCommand]
@@ -822,6 +1018,9 @@ public partial class MainViewModel : ViewModelBase
             marker.PropertyChanged += OnLootMarkerPropertyChanged;
             LootMarkers.Add(marker);
         }
+        _scopeOutSession = new ScopeOutVoiceSession(_lootRun.Definitions, _lootRun);
+        _scopeOutSession.SetListening(MicrophoneStatus != MicrophoneStatus.Off);
+        OnPropertyChanged(nameof(ScopeOutState));
         LootRevision++;
         OnPropertyChanged(nameof(BuyersRequestStatus));
         RefreshPlanningSummary();
@@ -894,5 +1093,16 @@ public partial class MainViewModel : ViewModelBase
             FlipY = FlipY,
         };
         SaveStatus = "Unsaved changes";
+    }
+
+    public void Dispose()
+    {
+        _inputDetectedResetTimer.Stop();
+        _speechRecognitionService.SpeechRecognized -= OnSpeechRecognized;
+        _speechRecognitionService.PartialTranscriptChanged -= OnPartialTranscriptChanged;
+        _speechRecognitionService.RecognitionFailed -= OnRecognitionFailed;
+        _audioCaptureService.FrameCaptured -= OnAudioFrameCaptured;
+        _speechRecognitionService.Dispose();
+        _audioCaptureService.Dispose();
     }
 }

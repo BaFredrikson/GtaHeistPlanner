@@ -1,8 +1,11 @@
 using System.Windows.Input;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using GtaHeistPlanner.App.Models;
 using GtaHeistPlanner.App.ViewModels;
 using GtaHeistPlanner.Core.Maps;
@@ -12,17 +15,39 @@ namespace GtaHeistPlanner.App.Controls;
 
 public sealed class ManualSecurityOverlayControl : Control
 {
+    private readonly Stopwatch _animationClock = Stopwatch.StartNew();
+    private readonly DispatcherTimer _animationTimer;
     private static readonly IconOverlayRenderer CameraIcon = new(
         new Uri("avares://GtaHeistPlanner.App/Assets/icons/camera.png"), 18,
         new Rect(20, 16, 24, 32), Color.Parse("#FF4D4D"));
+    private static readonly SvgIconOverlayRenderer GuardIcon = new(
+        new Uri("avares://GtaHeistPlanner.App/Assets/icons/security.svg"), 18, 13,
+        Color.Parse("#FF4D4D"));
     private static readonly IBrush VisionBrush = new SolidColorBrush(Color.Parse("#354CBFEA"));
     private static readonly Pen VisionPen = new(new SolidColorBrush(Color.Parse("#AA55CFF4")), 1.2);
     private static readonly Pen PatrolPen = new(new SolidColorBrush(Color.Parse("#D8E6F3")), 2);
     private static readonly Pen SelectedPen = new(new SolidColorBrush(Color.Parse("#F3C969")), 2);
-    private static readonly IBrush GuardBrush = new SolidColorBrush(Color.Parse("#FF6B57"));
     private string? _dragKind;
     private string? _dragId;
     private int _dragWaypointIndex = -1;
+
+    public ManualSecurityOverlayControl()
+    {
+        _animationTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Render,
+            (_, _) => InvalidateVisual());
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _animationTimer.Start();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _animationTimer.Stop();
+        base.OnDetachedFromVisualTree(e);
+    }
 
     public static readonly StyledProperty<IEnumerable<SecurityCameraViewModel>?> CamerasProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityCameraViewModel>?>(nameof(Cameras));
     public static readonly StyledProperty<IEnumerable<SecurityGuardViewModel>?> GuardsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityGuardViewModel>?>(nameof(Guards));
@@ -93,9 +118,12 @@ public sealed class ManualSecurityOverlayControl : Control
             }
             foreach (var guard in Guards?.Where(item => item.MapId == MapId && (item.IsActive || IsEditMode)) ?? [])
             {
-                var center = Screen(guard.X, guard.Y, rect);
+                var position = AnimatedGuardPosition(guard);
+                var center = Screen(position.X, position.Y, rect);
                 using var opacity = context.PushOpacity(guard.IsActive ? 1 : .25);
-                context.DrawEllipse(GuardBrush, guard == SelectedGuard ? MarkerPen(SelectedPen) : null, center, 7 * markerScale, 7 * markerScale);
+                GuardIcon.Draw(context, center, markerScale);
+                if (guard == SelectedGuard)
+                    context.DrawEllipse(null, MarkerPen(SelectedPen), center, 11 * markerScale, 11 * markerScale);
             }
         }
         if (ShowCameras || IsEditMode)
@@ -104,7 +132,7 @@ public sealed class ManualSecurityOverlayControl : Control
             {
                 using var opacity = context.PushOpacity(camera.IsActive ? 1 : .25);
                 var definition = camera.ToDomain();
-                var cone = NormalizedCameraGeometry.Create(definition);
+                var cone = NormalizedCameraGeometry.Create(definition, MapAspectRatio);
                 var geometry = new StreamGeometry();
                 using (var gc = geometry.Open())
                 {
@@ -165,4 +193,16 @@ public sealed class ManualSecurityOverlayControl : Control
     private static bool Normalize(Point p, Rect rect, out MapPoint result) { if (!rect.Contains(p)) { result = default; return false; } result = new((p.X - rect.X) / rect.Width, (p.Y - rect.Y) / rect.Height); return true; }
     private static double Distance(Point a, Point b) => Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
     private Pen MarkerPen(Pen pen) => new(pen.Brush, pen.Thickness * MapViewportMath.FixedMarkerScale(ViewportZoom));
+
+    private MapPoint AnimatedGuardPosition(SecurityGuardViewModel guard)
+    {
+        if (IsEditMode)
+            return new MapPoint(guard.X, guard.Y);
+
+        var patrol = Patrols?.FirstOrDefault(item =>
+            item.MapId == MapId && item.IsActive && guard.PatrolIds.Contains(item.Id) && item.Waypoints.Count > 0);
+        return patrol is null
+            ? new MapPoint(guard.X, guard.Y)
+            : PatrolAnimation.PositionAt(patrol.Waypoints, _animationClock.Elapsed.TotalSeconds);
+    }
 }

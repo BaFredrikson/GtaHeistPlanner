@@ -1,5 +1,904 @@
 {
-  "cameras": [],
-  "guards": [],
-  "patrols": []
+  "cameras": [
+    {
+      "id": "exterior-firstfloor-camera-01",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-01",
+      "x": 0.3773607829384721,
+      "y": 0.3194805194805195,
+      "rotationDegrees": 240,
+      "fovDegrees": 55,
+      "range": 0.026
+    },
+    {
+      "id": "exterior-firstfloor-camera-02",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-02",
+      "x": 0.3521452429818963,
+      "y": 0.3229437229437229,
+      "rotationDegrees": -75,
+      "fovDegrees": 55,
+      "range": 0.028
+    },
+    {
+      "id": "exterior-firstfloor-camera-03",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-03",
+      "x": 0.36704533477441836,
+      "y": 0.3939393939393939,
+      "rotationDegrees": 35,
+      "fovDegrees": 55,
+      "range": 0.03
+    },
+    {
+      "id": "exterior-firstfloor-camera-04",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-04",
+      "x": 0.4507150809939654,
+      "y": 0.3575757575757576,
+      "rotationDegrees": 70,
+      "fovDegrees": 80,
+      "range": 0.04
+    },
+    {
+      "id": "exterior-firstfloor-camera-05",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-05",
+      "x": 0.40716096652351624,
+      "y": 0.48658008658008656,
+      "rotationDegrees": 205,
+      "fovDegrees": 60,
+      "range": 0.04
+    },
+    {
+      "id": "exterior-firstfloor-camera-06",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-06",
+      "x": 0.26389085313388094,
+      "y": 0.49956709956709955,
+      "rotationDegrees": -70,
+      "fovDegrees": 80,
+      "range": 0.043
+    },
+    {
+      "id": "exterior-firstfloor-camera-07",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-07",
+      "x": 0.07477430345956232,
+      "y": 0.5168831168831168,
+      "rotationDegrees": 265,
+      "fovDegrees": 72,
+      "range": 0.06
+    },
+    {
+      "id": "exterior-firstfloor-camera-08",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-08",
+      "x": 0.01975857991794236,
+      "y": 0.5012987012987012,
+      "rotationDegrees": 25,
+      "fovDegrees": 55,
+      "range": 0.08
+    },
+    {
+      "id": "exterior-firstfloor-camera-09",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-09",
+      "x": 0.5458464362846832,
+      "y": 0.4025974025974026,
+      "rotationDegrees": 20,
+      "fovDegrees": 55,
+      "range": 0.04
+    },
+    {
+      "id": "exterior-firstfloor-camera-10",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-10",
+      "x": 0.27764478401928594,
+      "y": 0.6632034632034632,
+      "rotationDegrees": 280,
+      "fovDegrees": 55,
+      "range": 0.09
+    },
+    {
+      "id": "exterior-firstfloor-camera-11",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-11",
+      "x": 0.8140480885500806,
+      "y": 0.5774891774891775,
+      "rotationDegrees": 320,
+      "fovDegrees": 55,
+      "range": 0.03
+    },
+    {
+      "id": "exterior-firstfloor-camera-12",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-12",
+      "x": 0.6558778833679232,
+      "y": 0.49696969696969695,
+      "rotationDegrees": 160,
+      "fovDegrees": 55,
+      "range": 0.038
+    },
+    {
+      "id": "exterior-firstfloor-camera-13",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-13",
+      "x": 0.752155399565758,
+      "y": 0.6727272727272727,
+      "rotationDegrees": 115,
+      "fovDegrees": 55,
+      "range": 0.03
+    },
+    {
+      "id": "exterior-firstfloor-camera-14",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-14",
+      "x": 0.7212090550735969,
+      "y": 0.7454545454545455,
+      "rotationDegrees": 180,
+      "fovDegrees": 55,
+      "range": 0.038
+    },
+    {
+      "id": "exterior-firstfloor-camera-15",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-15",
+      "x": 0.7303783423305336,
+      "y": 0.8051948051948052,
+      "rotationDegrees": 165,
+      "fovDegrees": 55,
+      "range": 0.065
+    },
+    {
+      "id": "exterior-firstfloor-camera-16",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-16",
+      "x": 0.5194847354209904,
+      "y": 0.8207792207792208,
+      "rotationDegrees": 50,
+      "fovDegrees": 55,
+      "range": 0.035
+    },
+    {
+      "id": "exterior-firstfloor-camera-17",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-camera-17",
+      "x": 0.4908307127430633,
+      "y": 0.8025974025974026,
+      "rotationDegrees": 160,
+      "fovDegrees": 55,
+      "range": 0.03
+    },
+    {
+      "id": "exterior-second-floor-camera-01",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-camera-01",
+      "x": 0.8033938786031684,
+      "y": 0.6874458874458874,
+      "rotationDegrees": 50,
+      "fovDegrees": 55,
+      "range": 0.068
+    },
+    {
+      "id": "main-floor-camera-01",
+      "mapId": "main-floor",
+      "name": "main-floor-camera-01",
+      "x": 0.3730498743795873,
+      "y": 0.2910640187507128,
+      "rotationDegrees": 35,
+      "fovDegrees": 55,
+      "range": 0.07
+    },
+    {
+      "id": "main-floor-camera-02",
+      "mapId": "main-floor",
+      "name": "main-floor-camera-02",
+      "x": 0.43462123983912326,
+      "y": 0.13038884462231268,
+      "rotationDegrees": 125,
+      "fovDegrees": 55,
+      "range": 0.07
+    },
+    {
+      "id": "main-floor-camera-03",
+      "mapId": "main-floor",
+      "name": "main-floor-camera-03",
+      "x": 0.37779678029912783,
+      "y": 0.5221932114882507,
+      "rotationDegrees": 0,
+      "fovDegrees": 60,
+      "range": 0.34
+    },
+    {
+      "id": "lower-floor-camera-01",
+      "mapId": "lower-floor",
+      "name": "lower-floor-camera-01",
+      "x": 0.449436809041031,
+      "y": 0.8376134039666397,
+      "rotationDegrees": 90,
+      "fovDegrees": 55,
+      "range": 0.08
+    },
+    {
+      "id": "upper-floor-camera-01",
+      "mapId": "upper-floor",
+      "name": "upper-floor-camera-01",
+      "x": 0.9232836160653399,
+      "y": 0.27154046997389036,
+      "rotationDegrees": 140,
+      "fovDegrees": 55,
+      "range": 0.23
+    },
+    {
+      "id": "basement-camera-01",
+      "mapId": "basement",
+      "name": "basement-camera-01",
+      "x": 0.39817992776018635,
+      "y": 0.5346747336751363,
+      "rotationDegrees": 155,
+      "fovDegrees": 55,
+      "range": 0.07
+    },
+    {
+      "id": "basement-camera-02",
+      "mapId": "basement",
+      "name": "basement-camera-02",
+      "x": 0.254246258250092,
+      "y": 0.38965390362376634,
+      "rotationDegrees": 90,
+      "fovDegrees": 55,
+      "range": 0.05
+    },
+    {
+      "id": "basement-camera-03",
+      "mapId": "basement",
+      "name": "basement-camera-03",
+      "x": 0.1881463309050231,
+      "y": 0.45646594499378595,
+      "rotationDegrees": -20,
+      "fovDegrees": 55,
+      "range": 0.04
+    }
+  ],
+  "guards": [
+    {
+      "id": "exterior-firstfloor-guard-01",
+      "mapId": "exterior-firstfloor",
+      "name": "tango 1",
+      "x": 0.5320925053992782,
+      "y": 0.1645021645021645,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-01"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-02",
+      "mapId": "exterior-firstfloor",
+      "name": "tango 2",
+      "x": 0.5435541144704491,
+      "y": 0.38961038961038963,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-03"
+      ]
+    },
+    {
+      "id": "exterior-groundfloor-guard-01",
+      "mapId": "exterior-groundfloor",
+      "name": "tango 4",
+      "x": 0.7662068707449583,
+      "y": 0.6545454545454545,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-03",
+      "mapId": "exterior-firstfloor",
+      "name": "tango 3",
+      "x": 0.6753626187889136,
+      "y": 0.5255411255411255,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-04",
+      "mapId": "exterior-firstfloor",
+      "name": "garden guard 1",
+      "x": 0.2615985313196468,
+      "y": 0.6909090909090909,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-05",
+      "mapId": "exterior-firstfloor",
+      "name": "guard loading bay",
+      "x": 0.0827974298093819,
+      "y": 0.5168831168831168,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-second-floor-guard-01",
+      "mapId": "exterior-second-floor",
+      "name": "tango 5",
+      "x": 0.8332009965010235,
+      "y": 0.6805194805194805,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-second-floor-guard-02",
+      "mapId": "exterior-second-floor",
+      "name": "tango 6",
+      "x": 0.8321364565761001,
+      "y": 0.8346320346320346,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-second-floor-guard-03",
+      "mapId": "exterior-second-floor",
+      "name": "tango 7",
+      "x": 0.7554895819816154,
+      "y": 0.7437229437229437,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-second-floor-guard-04",
+      "mapId": "exterior-second-floor",
+      "name": "tango 8",
+      "x": 0.7831676200296238,
+      "y": 0.7471861471861472,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-rooftop-guard-01",
+      "mapId": "exterior-rooftop",
+      "name": "tango 9",
+      "x": 0.7842178340018513,
+      "y": 0.6233766233766234,
+      "patrolIds": [
+        "exterior-rooftop-patrol-01"
+      ]
+    },
+    {
+      "id": "exterior-rooftop-guard-02",
+      "mapId": "exterior-rooftop",
+      "name": "tango 10",
+      "x": 0.6224159210120334,
+      "y": 0.5575757575757576,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-06",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-06",
+      "x": 0.42779186285162374,
+      "y": 0.4562770562770563,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-02"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-07",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-07",
+      "x": 0.43466882829432624,
+      "y": 0.5948051948051948,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-08",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-08",
+      "x": 0.5458464362846832,
+      "y": 0.548051948051948,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-09",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-09",
+      "x": 0.5664773326127908,
+      "y": 0.6207792207792208,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-10",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-10",
+      "x": 0.5458464362846832,
+      "y": 0.6233766233766234,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-11",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-11",
+      "x": 0.28108326674063716,
+      "y": 0.6926406926406926,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-12",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-12",
+      "x": 0.40830712743063335,
+      "y": 0.6805194805194805,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-04"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-13",
+      "mapId": "exterior-firstfloor",
+      "name": "maze-guard 2",
+      "x": 0.3234912203039692,
+      "y": 0.8441558441558441,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-05"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-14",
+      "mapId": "exterior-firstfloor",
+      "name": "maze-guard 1",
+      "x": 0.4128917710591017,
+      "y": 0.8484848484848485,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-06"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-15",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-15",
+      "x": 0.5515772408202686,
+      "y": 0.8337662337662337,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-16",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-16",
+      "x": 0.4805152645790095,
+      "y": 0.8761904761904762,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-07"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-17",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-17",
+      "x": 0.6994319978383723,
+      "y": 0.8649350649350649,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-18",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-18",
+      "x": 0.7601785259155777,
+      "y": 0.7073593073593074,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-08"
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-guard-19",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-19",
+      "x": 0.6169084125259423,
+      "y": 0.7056277056277056,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-firstfloor-guard-20",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-guard-20",
+      "x": 0.8174865712714318,
+      "y": 0.5489177489177489,
+      "patrolIds": [
+        "exterior-firstfloor-patrol-09"
+      ]
+    },
+    {
+      "id": "exterior-second-floor-guard-05",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-guard-05",
+      "x": 0.38502968810827304,
+      "y": 0.38614718614718613,
+      "patrolIds": [
+        "exterior-second-floor-patrol-01"
+      ]
+    },
+    {
+      "id": "exterior-second-floor-guard-06",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-guard-06",
+      "x": 0.2828338553156268,
+      "y": 0.6199134199134199,
+      "patrolIds": []
+    },
+    {
+      "id": "exterior-second-floor-guard-07",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-guard-07",
+      "x": 0.17531532289836368,
+      "y": 0.5393939393939394,
+      "patrolIds": [
+        "exterior-second-floor-patrol-02"
+      ]
+    },
+    {
+      "id": "main-floor-guard-01",
+      "mapId": "main-floor",
+      "name": "main-floor-guard-01",
+      "x": 0.8666096591026166,
+      "y": 0.31070496083550914,
+      "patrolIds": []
+    },
+    {
+      "id": "main-floor-guard-02",
+      "mapId": "main-floor",
+      "name": "main-floor-guard-02",
+      "x": 0.46280771574321283,
+      "y": 0.8642297650130548,
+      "patrolIds": []
+    },
+    {
+      "id": "main-floor-guard-03",
+      "mapId": "main-floor",
+      "name": "main-floor-guard-03",
+      "x": 0.25028037713300033,
+      "y": 0.5091383812010444,
+      "patrolIds": []
+    },
+    {
+      "id": "upper-floor-guard-01",
+      "mapId": "upper-floor",
+      "name": "upper-floor-guard-01",
+      "x": 0.7851408459687018,
+      "y": 0.6318537859007833,
+      "patrolIds": []
+    },
+    {
+      "id": "upper-floor-guard-02",
+      "mapId": "upper-floor",
+      "name": "upper-floor-guard-02",
+      "x": 0.37071253567878737,
+      "y": 0.7127937336814621,
+      "patrolIds": []
+    },
+    {
+      "id": "upper-floor-guard-03",
+      "mapId": "upper-floor",
+      "name": "upper-floor-guard-03",
+      "x": 0.33174919026691513,
+      "y": 0.4725848563968668,
+      "patrolIds": []
+    },
+    {
+      "id": "upper-floor-guard-04",
+      "mapId": "upper-floor",
+      "name": "upper-floor-guard-04",
+      "x": 0.27507523330419176,
+      "y": 0.4804177545691906,
+      "patrolIds": []
+    },
+    {
+      "id": "lower-floor-guard-01",
+      "mapId": "lower-floor",
+      "name": "lower-floor-guard-01",
+      "x": 0.22047089076495083,
+      "y": 0.539341041859379,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-01",
+      "mapId": "basement",
+      "name": "basement-guard-01",
+      "x": 0.34355173644464276,
+      "y": 0.6710182767624021,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-02",
+      "mapId": "basement",
+      "name": "basement-guard-02",
+      "x": 0.42374129866899674,
+      "y": 0.4699738903394256,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-03",
+      "mapId": "basement",
+      "name": "basement-guard-03",
+      "x": 0.2649345185776291,
+      "y": 0.40992167101827676,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-04",
+      "mapId": "basement",
+      "name": "basement-guard-04",
+      "x": 0.193714531306374,
+      "y": 0.5280502750330928,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-05",
+      "mapId": "basement",
+      "name": "basement-guard-05",
+      "x": 0.20413245463793378,
+      "y": 0.521488378112823,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-06",
+      "mapId": "basement",
+      "name": "basement-guard-06",
+      "x": 0.31980732749180446,
+      "y": 0.34879118189299535,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-07",
+      "mapId": "basement",
+      "name": "basement-guard-07",
+      "x": 0.1941790224973168,
+      "y": 0.2924281984334204,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-08",
+      "mapId": "basement",
+      "name": "basement-guard-08",
+      "x": 0.19575136685465708,
+      "y": 0.1566579634464752,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-09",
+      "mapId": "basement",
+      "name": "basement-guard-09",
+      "x": 0.27908561779369156,
+      "y": 0.2898172323759791,
+      "patrolIds": []
+    }
+  ],
+  "patrols": [
+    {
+      "id": "exterior-firstfloor-patrol-01",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-01",
+      "waypoints": [
+        {
+          "x": 0.5194847354209904,
+          "y": 0.14632034632034632
+        },
+        {
+          "x": 0.5607465280772053,
+          "y": 0.21904761904761905
+        },
+        {
+          "x": 0.5229232181423416,
+          "y": 0.23463203463203464
+        },
+        {
+          "x": 0.5607465280772053,
+          "y": 0.2987012987012987
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-03",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-03",
+      "waypoints": [
+        {
+          "x": 0.5285151555855677,
+          "y": 0.3599373966949075
+        },
+        {
+          "x": 0.5786413943450472,
+          "y": 0.4577172020477056
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-02",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-02",
+      "waypoints": [
+        {
+          "x": 0.45529972462243373,
+          "y": 0.4961038961038961
+        },
+        {
+          "x": 0.4163302537804529,
+          "y": 0.43722943722943725
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-04",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-04",
+      "waypoints": [
+        {
+          "x": 0.3785069438455892,
+          "y": 0.638961038961039
+        },
+        {
+          "x": 0.42779186285162374,
+          "y": 0.7047619047619048
+        },
+        {
+          "x": 0.46217669006513623,
+          "y": 0.7038961038961039
+        },
+        {
+          "x": 0.4805152645790095,
+          "y": 0.6536796536796536
+        },
+        {
+          "x": 0.4942691954644145,
+          "y": 0.7056277056277056
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-05",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-05",
+      "waypoints": [
+        {
+          "x": 0.3578760475174817,
+          "y": 0.8251082251082251
+        },
+        {
+          "x": 0.3127109047116807,
+          "y": 0.8334488483405567
+        },
+        {
+          "x": 0.34351136467232474,
+          "y": 0.8901702595327707
+        },
+        {
+          "x": 0.36589917386730125,
+          "y": 0.8813852813852814
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-06",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-06",
+      "waypoints": [
+        {
+          "x": 0.40833324772675206,
+          "y": 0.8667517680485859
+        },
+        {
+          "x": 0.4403996328299116,
+          "y": 0.8952380952380953
+        },
+        {
+          "x": 0.4128917710591017,
+          "y": 0.8493506493506493
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-07",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-07",
+      "waypoints": [
+        {
+          "x": 0.46905365550783873,
+          "y": 0.8623376623376623
+        },
+        {
+          "x": 0.5206308963281074,
+          "y": 0.922077922077922
+        },
+        {
+          "x": 0.5263617008636928,
+          "y": 0.8597402597402597
+        },
+        {
+          "x": 0.5813774244053128,
+          "y": 0.9125541125541126
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-08",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-08",
+      "waypoints": [
+        {
+          "x": 0.7739324568009827,
+          "y": 0.7272727272727273
+        },
+        {
+          "x": 0.7567400431942264,
+          "y": 0.6995670995670996
+        }
+      ]
+    },
+    {
+      "id": "exterior-firstfloor-patrol-09",
+      "mapId": "exterior-firstfloor",
+      "name": "exterior-firstfloor-patrol-09",
+      "waypoints": [
+        {
+          "x": 0.820925053992783,
+          "y": 0.535064935064935
+        },
+        {
+          "x": 0.8323866630639538,
+          "y": 0.5532467532467532
+        },
+        {
+          "x": 0.8163404103643147,
+          "y": 0.5471861471861472
+        },
+        {
+          "x": 0.819778893085666,
+          "y": 0.535064935064935
+        }
+      ]
+    },
+    {
+      "id": "exterior-second-floor-patrol-01",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-patrol-01",
+      "waypoints": [
+        {
+          "x": 0.24238133816853774,
+          "y": 0.43636363636363634
+        },
+        {
+          "x": 0.4052559466818176,
+          "y": 0.38095238095238093
+        }
+      ]
+    },
+    {
+      "id": "exterior-second-floor-patrol-02",
+      "mapId": "exterior-second-floor",
+      "name": "exterior-second-floor-patrol-02",
+      "waypoints": [
+        {
+          "x": 0.08802304905464506,
+          "y": 0.6077922077922078
+        },
+        {
+          "x": 0.19234796169713803,
+          "y": 0.5731601731601732
+        },
+        {
+          "x": 0.14550820500050854,
+          "y": 0.4857142857142857
+        }
+      ]
+    },
+    {
+      "id": "exterior-rooftop-patrol-01",
+      "mapId": "exterior-rooftop",
+      "name": "exterior-rooftop-patrol-01",
+      "waypoints": [
+        {
+          "x": 0.7629281086084542,
+          "y": 0.6476190476190476
+        },
+        {
+          "x": 0.7895402653502005,
+          "y": 0.6363636363636364
+        },
+        {
+          "x": 0.763992594878124,
+          "y": 0.5878787878787879
+        }
+      ]
+    }
+  ]
 }

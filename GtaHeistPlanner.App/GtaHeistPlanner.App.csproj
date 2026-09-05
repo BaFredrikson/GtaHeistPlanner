@@ -14,6 +14,8 @@
                       Link="Assets\maps\kortz\%(Filename)%(Extension)" />
     <AvaloniaResource Include="..\assets\icons\camera.png"
                       Link="Assets\icons\camera.png" />
+    <AvaloniaResource Include="..\assets\icons\security.svg"
+                      Link="Assets\icons\security.svg" />
     <AvaloniaResource Include="..\assets\icons\loot.png"
                       Link="Assets\icons\loot.png" />
     <AvaloniaResource Include="..\assets\icons\special_loot.png"
@@ -23,6 +25,12 @@
     <AvaloniaResource Include="Data\kortz\kortz_loot_spawns.json" />
     <AvaloniaResource Include="Data\kortz\kortz_sewer_graph.json" />
     <AvaloniaResource Include="Data\kortz\kortz_security.json" />
+    <Content Include="Data\kortz\kortz_loot_spawns.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Data\kortz\kortz_security.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Data\kortz\kortz_exterior_cameras.json"
              CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\analysis\kortz\kortz_museum.analysis.json"

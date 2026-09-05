@@ -7,4 +7,7 @@ public sealed record LootSpawnDefinition(
     LootType Type,
     double X,
     double Y,
-    string? ZoneId = null);
+    string? ZoneId = null)
+{
+    public IReadOnlyList<string> VoiceAliases { get; init; } = [];
+}
