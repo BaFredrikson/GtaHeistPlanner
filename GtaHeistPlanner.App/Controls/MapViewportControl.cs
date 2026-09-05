@@ -41,8 +41,9 @@ public sealed class MapViewportControl : ContentControl
         var oldZoom = Zoom;
         var nextZoom = Math.Clamp(oldZoom * (e.Delta.Y > 0 ? 1.15 : 1 / 1.15), MapViewportState.MinimumZoom, MapViewportState.MaximumZoom);
         var pointer = e.GetPosition(this);
-        PanX = pointer.X - ((pointer.X - PanX) / oldZoom * nextZoom);
-        PanY = pointer.Y - ((pointer.Y - PanY) / oldZoom * nextZoom);
+        var contentPoint = MapViewportMath.ToContent(pointer, oldZoom, PanX, PanY);
+        PanX = pointer.X - contentPoint.X * nextZoom;
+        PanY = pointer.Y - contentPoint.Y * nextZoom;
         Zoom = nextZoom;
         if (Zoom == MapViewportState.MinimumZoom) { PanX = 0; PanY = 0; }
         ClampPan();

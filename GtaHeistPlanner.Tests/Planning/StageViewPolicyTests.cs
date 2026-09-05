@@ -28,16 +28,16 @@ public sealed class StageViewPolicyTests
     }
 
     [Fact]
-    public void ActivityAllowsFourInternalMapsPlusSewerAndInternalOverlays()
+    public void ActivityAllowsFourInternalMapsWithoutSewerAndInternalOverlays()
     {
         var policy = StageViewPolicies.Get(PlannerStage.HeistActivity);
 
-        Assert.Equal(5, policy.AllowedMapIds.Count);
+        Assert.Equal(4, policy.AllowedMapIds.Count);
         Assert.Contains("main-floor", policy.AllowedMapIds);
         Assert.Contains("upper-floor", policy.AllowedMapIds);
         Assert.Contains("lower-floor", policy.AllowedMapIds);
         Assert.Contains("basement", policy.AllowedMapIds);
-        Assert.Contains("sewer", policy.AllowedMapIds);
+        Assert.DoesNotContain("sewer", policy.AllowedMapIds);
         Assert.DoesNotContain("exterior-firstfloor", policy.AllowedMapIds);
         Assert.True(policy.AllowsOverlay(OverlayType.InteriorGuards, "main-floor"));
         Assert.True(policy.AllowsOverlay(OverlayType.InteriorCameras, "upper-floor"));
@@ -74,10 +74,18 @@ public sealed class StageViewPolicyTests
     {
         var maps = StageViewPolicies.Get(PlannerStage.HeistInfiltration).AllowedMapIds;
 
-        Assert.Equal(3, maps.Count);
+        Assert.Equal(4, maps.Count);
         Assert.Contains("exterior-firstfloor", maps);
         Assert.Contains("exterior-second-floor", maps);
         Assert.Contains("exterior-rooftop", maps);
+        Assert.Contains("sewer", maps);
+    }
+
+    [Fact]
+    public void SewerBelongsOnlyToInfiltration()
+    {
+        Assert.Contains("sewer", StageViewPolicies.Get(PlannerStage.HeistInfiltration).AllowedMapIds);
+        Assert.DoesNotContain("sewer", StageViewPolicies.Get(PlannerStage.HeistActivity).AllowedMapIds);
     }
 
     [Fact]

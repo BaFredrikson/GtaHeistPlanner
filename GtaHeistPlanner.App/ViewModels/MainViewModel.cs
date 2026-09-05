@@ -39,7 +39,6 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowCameras))]
     [NotifyPropertyChangedFor(nameof(ShowCameraCones))]
     [NotifyPropertyChangedFor(nameof(IsSewerSelected))]
-    [NotifyPropertyChangedFor(nameof(IsSewerEditorVisible))]
     [NotifyPropertyChangedFor(nameof(ShowManualCameras))]
     [NotifyPropertyChangedFor(nameof(ShowManualGuards))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
@@ -88,7 +87,6 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLootAuthoringEnabled))]
     [NotifyPropertyChangedFor(nameof(ShowDeveloperCalibration))]
-    [NotifyPropertyChangedFor(nameof(IsSewerEditorVisible))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
@@ -105,13 +103,14 @@ public partial class MainViewModel : ViewModelBase
     public partial LootMarkerViewModel? SelectedLoot { get; set; }
     [ObservableProperty] public partial string? LootStatus { get; set; }
     [ObservableProperty] public partial int LootRevision { get; set; }
-    [ObservableProperty] public partial SewerNodeViewModel? SelectedSewerNode { get; set; }
-    [ObservableProperty] public partial SewerNodeViewModel? SewerConnectionTarget { get; set; }
-    [ObservableProperty] public partial SewerTurn NewSewerConnectionTurn { get; set; }
     [ObservableProperty] public partial string SewerRouteInput { get; set; } = string.Empty;
     [ObservableProperty] public partial string? SewerDiagnostic { get; set; }
     [ObservableProperty] public partial int SewerRevision { get; set; }
-    [ObservableProperty] public partial string? SewerStartNodeId { get; set; }
+    [ObservableProperty] public partial int? SewerStartChamber { get; set; }
+    [ObservableProperty] public partial string? SewerEntrancePathId { get; set; }
+    [ObservableProperty] public partial int SewerExitChamber { get; set; } = 4;
+    [ObservableProperty] public partial string? SewerExitPathId { get; set; }
+    [ObservableProperty] public partial bool IsSewerRouteComplete { get; set; }
     [ObservableProperty] public partial SecurityEditorTool SecurityEditorTool { get; set; }
     [ObservableProperty] public partial SecurityCameraViewModel? SelectedSecurityCamera { get; set; }
     [ObservableProperty] public partial SecurityGuardViewModel? SelectedSecurityGuard { get; set; }
@@ -130,15 +129,14 @@ public partial class MainViewModel : ViewModelBase
     public ObservableCollection<MapDefinition> Maps { get; } = [];
     public ObservableCollection<LootMarkerViewModel> LootMarkers { get; } = [];
     public ObservableCollection<RecordingDeviceInfo> RecordingDevices { get; } = [];
-    public ObservableCollection<SewerNodeViewModel> SewerNodes { get; } = [];
+    public ObservableCollection<SewerPath> SewerPaths { get; } = [];
     public ObservableCollection<SewerConnection> SewerConnections { get; } = [];
-    public ObservableCollection<SewerConnection> HighlightedSewerConnections { get; } = [];
+    public ObservableCollection<string> HighlightedSewerPathIds { get; } = [];
     public ObservableCollection<SecurityCameraViewModel> SecurityCameras { get; } = [];
     public ObservableCollection<SecurityGuardViewModel> SecurityGuards { get; } = [];
     public ObservableCollection<SecurityPatrolViewModel> SecurityPatrols { get; } = [];
     public ObservableCollection<MapCardViewModel> VisibleMapCards { get; } = [];
     public ObservableCollection<PatrolAssignmentViewModel> SelectedGuardPatrolAssignments { get; } = [];
-    public IReadOnlyList<SewerTurn> SewerTurns { get; } = Enum.GetValues<SewerTurn>();
     public IReadOnlyList<SecurityEditorTool> SecurityEditorTools { get; } = Enum.GetValues<SecurityEditorTool>();
     public IReadOnlyList<PlayerCountOption> PlayerCountOptions { get; } =
     [
@@ -168,7 +166,6 @@ public partial class MainViewModel : ViewModelBase
     public bool HasFocusedMap => FocusedMapId is not null;
     public MapCardViewModel? FocusedMapCard => VisibleMapCards.FirstOrDefault(card => card.Map.Id == FocusedMapId);
     public bool IsSewerSelected => SelectedMap.Id == "sewer";
-    public bool IsSewerEditorVisible => DeveloperMode && IsSewerSelected;
     public LootPlanningSummary PlanningSummary => LootPlanningSummaryCalculator.Calculate(
         LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount);
     public string PlanningValueRange => $"${PlanningSummary.EstimatedMinValue:N0} – ${PlanningSummary.EstimatedMaxValue:N0}";
@@ -491,24 +488,31 @@ public partial class MainViewModel : ViewModelBase
     private void LoadSewerGraph()
     {
         var graph = _sewerGraphStore.Load();
-        SewerStartNodeId = graph.StartNodeId;
-        SewerNodes.Clear();
-        foreach (var node in graph.Nodes)
-            SewerNodes.Add(new SewerNodeViewModel(node));
+        SewerStartChamber = graph.StartChamber;
+        SewerEntrancePathId = graph.EntrancePathId;
+        SewerExitChamber = graph.ExitChamber;
+        SewerExitPathId = graph.ExitPathId;
+        SewerPaths.Clear();
+        foreach (var path in graph.Paths)
+            SewerPaths.Add(path);
         SewerConnections.Clear();
         foreach (var connection in graph.Connections)
             SewerConnections.Add(connection);
+        SewerDiagnostic = _sewerGraphStore.LastLoadWarning;
         SewerRevision++;
     }
 
-    public void SetSewerRoute(IEnumerable<SewerTurn> turns)
+    public void SetSewerRoute(IReadOnlyList<SewerInstruction> instructions)
     {
-        var result = SewerGraphTraversal.Traverse(BuildSewerGraph(), new SewerRoute(turns.ToList()));
-        HighlightedSewerConnections.Clear();
-        foreach (var connection in result.TraversedConnections)
-            HighlightedSewerConnections.Add(connection);
+        var result = SewerGraphTraversal.Traverse(BuildSewerGraph(), instructions);
+        IsSewerRouteComplete = result.IsComplete;
+        HighlightedSewerPathIds.Clear();
+        foreach (var pathId in result.PathIds)
+            HighlightedSewerPathIds.Add(pathId);
         SewerRevision++;
-        SewerDiagnostic = result.IsComplete ? "Sewer route resolved." : result.Error;
+        SewerDiagnostic = result.IsComplete
+            ? $"Sewer route resolved: {string.Join(" → ", result.PathIds)}"
+            : result.Error;
     }
 
     [RelayCommand]
@@ -516,86 +520,24 @@ public partial class MainViewModel : ViewModelBase
     {
         try
         {
-            SetSewerRoute(SewerRouteParser.Parse(SewerRouteInput).Turns);
+            SetSewerRoute(SewerRouteParser.Parse(SewerRouteInput));
         }
         catch (Exception exception) when (exception is FormatException or InvalidDataException)
         {
-            HighlightedSewerConnections.Clear();
+            HighlightedSewerPathIds.Clear();
+            IsSewerRouteComplete = false;
             SewerRevision++;
             SewerDiagnostic = exception.Message;
         }
     }
 
-    [RelayCommand]
-    private void AddSewerNode(MapPoint point)
-    {
-        if (!IsSewerEditorVisible) return;
-        var sequence = 1;
-        string id;
-        do id = $"junction-{sequence++:00}"; while (SewerNodes.Any(node => node.Id == id));
-        var node = new SewerNodeViewModel(new SewerNode(id, point.X, point.Y));
-        SewerNodes.Add(node);
-        SelectedSewerNode = node;
-        SewerRevision++;
-        SewerDiagnostic = "Junction added; save the graph to persist it.";
-    }
-
-    [RelayCommand]
-    private void MoveSewerNode(SewerNodeMove move)
-    {
-        if (!IsSewerEditorVisible) return;
-        var node = SewerNodes.FirstOrDefault(item => item.Id == move.NodeId);
-        if (node is null) return;
-        node.MapX = Math.Clamp(move.X, 0, 1);
-        node.MapY = Math.Clamp(move.Y, 0, 1);
-        SewerRevision++;
-    }
-
-    [RelayCommand]
-    private void SelectSewerNode(string id) =>
-        SelectedSewerNode = SewerNodes.FirstOrDefault(node => node.Id == id);
-
-    [RelayCommand]
-    private void SetSewerStartNode()
-    {
-        if (SelectedSewerNode is null) return;
-        SewerStartNodeId = SelectedSewerNode.Id;
-        SewerRevision++;
-    }
-
-    [RelayCommand]
-    private void AddSewerConnection()
-    {
-        if (SelectedSewerNode is null || SewerConnectionTarget is null) return;
-        var connection = new SewerConnection(SelectedSewerNode.Id, SewerConnectionTarget.Id, NewSewerConnectionTurn);
-        if (SewerConnections.Any(item => item.FromNodeId == connection.FromNodeId && item.Turn == connection.Turn))
-        {
-            SewerDiagnostic = $"{connection.FromNodeId} already has a {connection.Turn} connection.";
-            return;
-        }
-        SewerConnections.Add(connection);
-        SewerRevision++;
-        SewerDiagnostic = "Connection added; save the graph to persist it.";
-    }
-
-    [RelayCommand]
-    private void SaveSewerGraph()
-    {
-        try
-        {
-            _sewerGraphStore.Save(BuildSewerGraph());
-            SewerDiagnostic = "Sewer graph saved.";
-        }
-        catch (InvalidDataException exception)
-        {
-            SewerDiagnostic = exception.Message;
-        }
-    }
-
     private SewerGraph BuildSewerGraph() => new(
-        SewerStartNodeId,
-        SewerNodes.Select(node => node.ToDomain()).ToList(),
-        SewerConnections.ToList());
+        SewerStartChamber,
+        SewerPaths.ToList(),
+        SewerConnections.ToList(),
+        SewerEntrancePathId,
+        SewerExitChamber,
+        SewerExitPathId);
 
     private void LoadSecurityDataset()
     {

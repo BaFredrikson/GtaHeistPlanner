@@ -30,11 +30,16 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
     public bool IsSecurityEditMode => Owner.DeveloperMode &&
         Owner.CurrentStage is PlannerStage.HeistInfiltration or PlannerStage.HeistActivity;
     public bool IsSewer => Map.Id == "sewer";
-    public bool IsSewerEditMode => Owner.DeveloperMode && IsSewer;
     public bool IsFocused => Owner.FocusedMapId == Map.Id;
+    public string FocusGlyph => IsFocused ? "▣" : "⛶";
 
     [RelayCommand] private void SelectMap() => Owner.SelectedMap = Map;
-    [RelayCommand] private void FocusMap() => Owner.FocusMapCommand.Execute(Map.Id);
+    [RelayCommand]
+    private void FocusMap()
+    {
+        if (IsFocused) Owner.ExitMapFocusCommand.Execute(null);
+        else Owner.FocusMapCommand.Execute(Map.Id);
+    }
     [RelayCommand] private void ZoomIn() => Viewport.SetZoom(Viewport.Zoom * 1.25);
     [RelayCommand] private void ZoomOut() => Viewport.SetZoom(Viewport.Zoom / 1.25);
     [RelayCommand] private void ResetViewport() => Viewport.Reset();
@@ -68,16 +73,6 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
     [RelayCommand] private void SelectPatrolWaypoint(SecurityWaypointSelection selection) { Owner.SelectedMap = Map; Owner.SelectPatrolWaypointCommand.Execute(selection); }
     [RelayCommand] private void MovePatrolWaypoint(SecurityWaypointMove move) => Owner.MovePatrolWaypointCommand.Execute(move);
 
-    [RelayCommand]
-    private void AddSewerNode(MapPoint point)
-    {
-        Owner.SelectedMap = Map;
-        Owner.AddSewerNodeCommand.Execute(point);
-    }
-
-    [RelayCommand] private void MoveSewerNode(SewerNodeMove move) => Owner.MoveSewerNodeCommand.Execute(move);
-    [RelayCommand] private void SelectSewerNode(string id) => Owner.SelectSewerNodeCommand.Execute(id);
-
     private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         OnPropertyChanged(nameof(IsSelected));
@@ -87,8 +82,8 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowGuards));
         OnPropertyChanged(nameof(ShowCameras));
         OnPropertyChanged(nameof(IsSecurityEditMode));
-        OnPropertyChanged(nameof(IsSewerEditMode));
         OnPropertyChanged(nameof(IsFocused));
+        OnPropertyChanged(nameof(FocusGlyph));
     }
 
     public void Dispose() => Owner.PropertyChanged -= OnOwnerPropertyChanged;

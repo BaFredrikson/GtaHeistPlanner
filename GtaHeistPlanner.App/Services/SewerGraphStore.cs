@@ -10,13 +10,24 @@ public sealed class SewerGraphStore
     public string FilePath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "GtaHeistPlanner", "data", "kortz_sewer_graph.json");
+    public string? LastLoadWarning { get; private set; }
 
     public SewerGraph Load()
     {
+        LastLoadWarning = null;
         if (File.Exists(FilePath))
         {
-            using var stream = File.OpenRead(FilePath);
-            return SewerGraphJson.Load(stream);
+            try
+            {
+                using var stream = File.OpenRead(FilePath);
+                return SewerGraphJson.Load(stream);
+            }
+            catch (InvalidDataException)
+            {
+                // Old Left/Right topology cannot be translated without inventing chamber labels.
+                // Fall back to the intentionally empty bundled schema for manual authoring.
+                LastLoadWarning = $"The user sewer topology uses the obsolete node/Left/Right schema. Replace '{FilePath}' with the chamber-letter schema.";
+            }
         }
         using var bundled = AssetLoader.Open(BundledGraph);
         return SewerGraphJson.Load(bundled);

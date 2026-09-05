@@ -76,6 +76,8 @@ public sealed class SecurityOverlayControl : Control
         AvaloniaProperty.Register<SecurityOverlayControl, string?>(nameof(MapId));
     public static readonly StyledProperty<double> MapAspectRatioProperty =
         AvaloniaProperty.Register<SecurityOverlayControl, double>(nameof(MapAspectRatio), 1);
+    public static readonly StyledProperty<double> ViewportZoomProperty =
+        AvaloniaProperty.Register<SecurityOverlayControl, double>(nameof(ViewportZoom), 1);
     public static readonly StyledProperty<bool> IsLootEditModeProperty =
         AvaloniaProperty.Register<SecurityOverlayControl, bool>(nameof(IsLootEditMode));
     public static readonly StyledProperty<bool> ShowLootProperty =
@@ -97,7 +99,7 @@ public sealed class SecurityOverlayControl : Control
     {
         AffectsRender<SecurityOverlayControl>(AnalysisProperty, CalibrationProperty, CameraDataProperty,
             ShowSecurityProperty, ShowCamerasProperty, ShowCameraConesProperty, LootMarkersProperty,
-            MapIdProperty, MapAspectRatioProperty, IsLootEditModeProperty, ShowLootProperty,
+            MapIdProperty, MapAspectRatioProperty, ViewportZoomProperty, IsLootEditModeProperty, ShowLootProperty,
             ShowUnknownLootClearlyProperty, SelectedLootProperty, LootRevisionProperty);
     }
 
@@ -146,6 +148,7 @@ public sealed class SecurityOverlayControl : Control
     public IEnumerable<LootMarkerViewModel>? LootMarkers { get => GetValue(LootMarkersProperty); set => SetValue(LootMarkersProperty, value); }
     public string? MapId { get => GetValue(MapIdProperty); set => SetValue(MapIdProperty, value); }
     public double MapAspectRatio { get => GetValue(MapAspectRatioProperty); set => SetValue(MapAspectRatioProperty, value); }
+    public double ViewportZoom { get => GetValue(ViewportZoomProperty); set => SetValue(ViewportZoomProperty, value); }
     public bool IsLootEditMode { get => GetValue(IsLootEditModeProperty); set => SetValue(IsLootEditModeProperty, value); }
     public bool ShowLoot { get => GetValue(ShowLootProperty); set => SetValue(ShowLootProperty, value); }
     public bool ShowUnknownLootClearly { get => GetValue(ShowUnknownLootClearlyProperty); set => SetValue(ShowUnknownLootClearlyProperty, value); }
@@ -392,6 +395,7 @@ public sealed class SecurityOverlayControl : Control
         if (!ShowLoot)
             return;
         var mapRect = GetLootMapRect();
+        var markerScale = MapViewportMath.FixedMarkerScale(ViewportZoom);
         foreach (var marker in CurrentLoot())
         {
             if (!marker.IsPresent && !IsLootEditMode && !ShowUnknownLootClearly)
@@ -401,15 +405,15 @@ public sealed class SecurityOverlayControl : Control
             var renderer = marker.Type == LootType.LoadingBayCargo
                 ? TruckCargoIcon
                 : marker.IsBuyersRequest ? SpecialLootIcon : LootIcon;
-            renderer.Draw(context, center, opacity: opacity);
+            renderer.Draw(context, center, opacity: opacity, visualScale: markerScale);
             if (marker.Type == LootType.LoadingBayCargo && marker.IsBuyersRequest)
-                context.DrawEllipse(null, BuyersRequestPen, center, 14, 14);
+                context.DrawEllipse(null, MarkerPen(BuyersRequestPen), center, 14 * markerScale, 14 * markerScale);
             if (marker == SelectedLoot)
-                context.DrawEllipse(null, SelectedLootPen, center, 16, 16);
+                context.DrawEllipse(null, MarkerPen(SelectedLootPen), center, 16 * markerScale, 16 * markerScale);
             if (marker.IsLooted)
             {
-                context.DrawLine(LootedPen, center + new Vector(-8, -8), center + new Vector(8, 8));
-                context.DrawLine(LootedPen, center + new Vector(8, -8), center + new Vector(-8, 8));
+                context.DrawLine(MarkerPen(LootedPen), center + new Vector(-8, -8) * markerScale, center + new Vector(8, 8) * markerScale);
+                context.DrawLine(MarkerPen(LootedPen), center + new Vector(8, -8) * markerScale, center + new Vector(-8, 8) * markerScale);
             }
         }
     }
@@ -426,11 +430,13 @@ public sealed class SecurityOverlayControl : Control
                 Marker = marker,
                 Distance = Distance(point, new Point(mapRect.X + marker.X * mapRect.Width, mapRect.Y + marker.Y * mapRect.Height)),
             })
-            .Where(item => item.Distance <= 16)
+            .Where(item => item.Distance <= 16 * MapViewportMath.FixedMarkerScale(ViewportZoom))
             .OrderBy(item => item.Distance)
             .Select(item => item.Marker)
             .FirstOrDefault();
     }
+
+    private Pen MarkerPen(Pen pen) => new(pen.Brush, pen.Thickness * MapViewportMath.FixedMarkerScale(ViewportZoom));
 
     private bool TryToNormalized(Point point, out MapPoint normalized)
     {

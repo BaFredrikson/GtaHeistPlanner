@@ -1,5 +1,193 @@
 {
-  "startNodeId": null,
-  "nodes": [],
-  "connections": []
+  "startChamber": 2,
+  "entrancePathId": "sewer-entrance-to-2",
+  "exitChamber": 4,
+  "exitPathId": "sewer-4-to-exit",
+  "paths": [
+    {
+      "id": "sewer-edge-2-1",
+      "points": [
+        { "x": 0.631, "y": 0.634 },
+        { "x": 0.55, "y": 0.73 },
+        { "x": 0.41, "y": 0.748 }
+      ]
+    },
+    {
+      "id": "sewer-edge-2-3",
+      "points": [
+        { "x": 0.631, "y": 0.634 },
+        { "x": 0.5, "y": 0.5 }
+      ]
+    },
+    {
+      "id": "sewer-edge-2-5",
+      "points": [
+        { "x": 0.631, "y": 0.634 },
+        { "x": 0.631, "y": 0.36 }
+      ]
+    },
+    {
+      "id": "sewer-edge-1-4",
+      "points": [
+        { "x": 0.41, "y": 0.748 },
+        { "x": 0.345, "y": 0.67 },
+        { "x": 0.33, "y": 0.50 }
+      ]
+    },
+    {
+      "id": "sewer-edge-1-3",
+      "points": [
+        { "x": 0.41, "y": 0.748 },
+        { "x": 0.43, "y": 0.61 },
+        { "x": 0.5, "y": 0.5 }
+      ]
+    },
+    {
+      "id": "sewer-edge-3-4",
+      "points": [
+        { "x": 0.5, "y": 0.5 },
+        { "x": 0.33, "y": 0.50 }
+      ]
+    },
+    {
+      "id": "sewer-edge-5-3",
+      "points": [
+        { "x": 0.631, "y": 0.36 },
+        { "x": 0.5, "y": 0.5 }
+      ]
+    },
+    {
+      "id": "sewer-edge-3-6",
+      "points": [
+        { "x": 0.5, "y": 0.5 },
+        { "x": 0.49, "y": 0.46 },
+        { "x": 0.44, "y": 0.40 },
+        { "x": 0.435, "y": 0.25 }
+      ]
+    },
+    {
+      "id": "sewer-edge-5-6",
+      "points": [
+        { "x": 0.631, "y": 0.36 },
+        { "x": 0.611, "y": 0.29 },
+        { "x": 0.571, "y": 0.25 },
+        { "x": 0.435, "y": 0.25 }
+      ]
+    },
+    {
+      "id": "sewer-edge-6-4",
+      "points": [
+        { "x": 0.435, "y": 0.25 },
+        { "x": 0.38, "y": 0.30 },
+        { "x": 0.33, "y": 0.37 },
+        { "x": 0.33, "y": 0.50 }
+      ]
+    },
+    {
+      "id": "sewer-entrance-to-2",
+      "points": [
+        { "x": 0.783, "y": 0.706 },
+        { "x": 0.631, "y": 0.634 }
+      ]
+    },
+    {
+      "id": "sewer-4-to-exit",
+      "points": [
+        { "x": 0.33, "y": 0.50 },
+        { "x": 0.211, "y": 0.574 }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge-2-1",
+      "tunnelFromA": "C",
+      "tunnelFromB": "C",
+      "chamberA": 2,
+      "chamberB": 1,
+      "pathId": "sewer-edge-2-1",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-2-3",
+      "tunnelFromA": "B",
+      "tunnelFromB": "B",
+      "chamberA": 2,
+      "chamberB": 3,
+      "pathId": "sewer-edge-2-3",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-2-5",
+      "tunnelFromA": "A",
+      "tunnelFromB": "A",
+      "chamberA": 2,
+      "chamberB": 5,
+      "pathId": "sewer-edge-2-5",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-1-4",
+      "tunnelFromA": "B",
+      "tunnelFromB": "B",
+      "chamberA": 1,
+      "chamberB": 4,
+      "pathId": "sewer-edge-1-4",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-1-3",
+      "tunnelFromA": "A",
+      "tunnelFromB": "A",
+      "chamberA": 1,
+      "chamberB": 3,
+      "pathId": "sewer-edge-1-3",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-3-4",
+      "tunnelFromA": "E",
+      "tunnelFromB": "E",
+      "chamberA": 3,
+      "chamberB": 4,
+      "pathId": "sewer-edge-3-4",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-3-5",
+      "tunnelFromA": "C",
+      "tunnelFromB": "C",
+      "chamberA": 3,
+      "chamberB": 5,
+      "pathId": "sewer-edge-5-3",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-3-6",
+      "tunnelFromA": "D",
+      "tunnelFromB": "D",
+      "chamberA": 3,
+      "chamberB": 6,
+      "pathId": "sewer-edge-3-6",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-5-6",
+      "tunnelFromA": "E",
+      "tunnelFromB": "E",
+      "chamberA": 5,
+      "chamberB": 6,
+      "pathId": "sewer-edge-5-6",
+      "state": "Traversable"
+    },
+    {
+      "id": "edge-6-4",
+      "tunnelFromA": "C",
+      "tunnelFromB": "C",
+      "chamberA": 6,
+      "chamberB": 4,
+      "pathId": "sewer-edge-6-4",
+      "state": "Traversable"
+    }
+  ]
 }

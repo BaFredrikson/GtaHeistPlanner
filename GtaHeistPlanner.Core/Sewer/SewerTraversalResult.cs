@@ -2,6 +2,7 @@ namespace GtaHeistPlanner.Core.Sewer;
 
 public sealed record SewerTraversalResult(
     bool IsComplete,
-    IReadOnlyList<string> VisitedNodeIds,
-    IReadOnlyList<SewerConnection> TraversedConnections,
+    int? CurrentChamber,
+    IReadOnlyList<SewerResolvedStep> Steps,
+    IReadOnlyList<string> PathIds,
     string? Error);

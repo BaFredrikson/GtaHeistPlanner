@@ -2,24 +2,25 @@ namespace GtaHeistPlanner.Core.Sewer;
 
 public static class SewerRouteParser
 {
-    public static SewerRoute Parse(string text)
+    private static readonly System.Text.RegularExpressions.Regex InstructionPattern = new(
+        @"(?:\bchamber\s+)?(?<chamber>\d+)\s*(?<tunnel>[a-z])\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    public static IReadOnlyList<SewerInstruction> Parse(string text)
     {
-        var tokens = text.Split([' ', ',', ';', '-', '>'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var turns = new List<SewerTurn>();
-        foreach (var token in tokens)
+        if (string.IsNullOrWhiteSpace(text))
+            throw new FormatException("Enter at least one sewer instruction, such as 2C.");
+
+        var instructions = new List<SewerInstruction>();
+        foreach (System.Text.RegularExpressions.Match match in InstructionPattern.Matches(text))
         {
-            if (token.Equals("escape", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("route", StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (token.Equals("l", StringComparison.OrdinalIgnoreCase) || token.Equals("left", StringComparison.OrdinalIgnoreCase))
-                turns.Add(SewerTurn.Left);
-            else if (token.Equals("r", StringComparison.OrdinalIgnoreCase) || token.Equals("right", StringComparison.OrdinalIgnoreCase))
-                turns.Add(SewerTurn.Right);
-            else
-                throw new FormatException($"Unknown sewer turn '{token}'. Use L/R or left/right.");
+            var chamber = int.Parse(match.Groups["chamber"].Value, System.Globalization.CultureInfo.InvariantCulture);
+            instructions.Add(new SewerInstruction(chamber, match.Groups["tunnel"].Value[0]));
         }
-        if (turns.Count == 0)
-            throw new FormatException("Enter at least one sewer turn.");
-        return new SewerRoute(turns);
+
+        var remainder = InstructionPattern.Replace(text, string.Empty);
+        if (instructions.Count == 0 || remainder.Any(character => !char.IsWhiteSpace(character) && character is not ',' and not ';' and not '-' and not '>'))
+            throw new FormatException($"Invalid sewer route '{text}'. Use chamber-letter instructions such as 2C 3C 4D.");
+        return instructions;
     }
 }

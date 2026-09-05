@@ -13,13 +13,13 @@ internal sealed class IconOverlayRenderer(
 {
     private readonly Lazy<Bitmap> _bitmap = new(() => LoadBitmap(assetUri, tintColor));
 
-    public void Draw(DrawingContext context, Point center, double rotationDegrees = 0, double opacity = 1)
+    public void Draw(DrawingContext context, Point center, double rotationDegrees = 0, double opacity = 1, double visualScale = 1)
     {
         var bitmap = _bitmap.Value;
         var source = sourceBounds ?? new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height);
         var aspectRatio = source.Width / source.Height;
-        var width = aspectRatio <= 1 ? displaySize * aspectRatio : displaySize;
-        var height = aspectRatio <= 1 ? displaySize : displaySize / aspectRatio;
+        var width = (aspectRatio <= 1 ? displaySize * aspectRatio : displaySize) * visualScale;
+        var height = (aspectRatio <= 1 ? displaySize : displaySize / aspectRatio) * visualScale;
         var destination = new Rect(center.X - width / 2, center.Y - height / 2, width, height);
         using var transform = context.PushTransform(
             Matrix.CreateRotation(rotationDegrees * Math.PI / 180, center));

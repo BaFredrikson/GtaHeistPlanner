@@ -13,10 +13,12 @@ public static class StageViewPolicies
         "exterior-rooftop",
     };
 
-    private static readonly IReadOnlySet<string> ActivityMaps = new HashSet<string>(LootMaps, StringComparer.Ordinal)
+    private static readonly IReadOnlySet<string> InfiltrationMaps = new HashSet<string>(ExteriorMaps, StringComparer.Ordinal)
     {
         "sewer",
     };
+
+    private static readonly IReadOnlySet<string> ActivityMaps = new HashSet<string>(LootMaps, StringComparer.Ordinal);
 
     public static StageViewPolicy Get(PlannerStage stage) => stage switch
     {
@@ -24,7 +26,7 @@ public static class StageViewPolicies
             false, false, false, false, false),
         PlannerStage.Planning => new(stage, LootMaps, LootVisibilityMode.ScopedOnly,
             false, false, false, false, false),
-        PlannerStage.HeistInfiltration => new(stage, ExteriorMaps, LootVisibilityMode.Hidden,
+        PlannerStage.HeistInfiltration => new(stage, InfiltrationMaps, LootVisibilityMode.Hidden,
             true, true, false, true, false),
         PlannerStage.HeistActivity => new(stage, ActivityMaps, LootVisibilityMode.ScopedOnly,
             false, false, true, false, true),

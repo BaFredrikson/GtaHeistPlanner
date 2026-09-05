@@ -29,6 +29,7 @@ public sealed class ManualSecurityOverlayControl : Control
     public static readonly StyledProperty<IEnumerable<SecurityPatrolViewModel>?> PatrolsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityPatrolViewModel>?>(nameof(Patrols));
     public static readonly StyledProperty<string?> MapIdProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, string?>(nameof(MapId));
     public static readonly StyledProperty<double> MapAspectRatioProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, double>(nameof(MapAspectRatio), 1);
+    public static readonly StyledProperty<double> ViewportZoomProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, double>(nameof(ViewportZoom), 1);
     public static readonly StyledProperty<bool> ShowCamerasProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(ShowCameras));
     public static readonly StyledProperty<bool> ShowGuardsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(ShowGuards));
     public static readonly StyledProperty<bool> IsEditModeProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(IsEditMode));
@@ -45,7 +46,7 @@ public sealed class ManualSecurityOverlayControl : Control
     public static readonly StyledProperty<ICommand?> MoveWaypointCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(MoveWaypointCommand));
 
     static ManualSecurityOverlayControl() => AffectsRender<ManualSecurityOverlayControl>(CamerasProperty, GuardsProperty,
-        PatrolsProperty, MapIdProperty, MapAspectRatioProperty, ShowCamerasProperty, ShowGuardsProperty,
+        PatrolsProperty, MapIdProperty, MapAspectRatioProperty, ViewportZoomProperty, ShowCamerasProperty, ShowGuardsProperty,
         IsEditModeProperty, SelectedCameraProperty, SelectedGuardProperty, SelectedPatrolProperty,
         SelectedWaypointIndexProperty, RevisionProperty);
 
@@ -54,6 +55,7 @@ public sealed class ManualSecurityOverlayControl : Control
     public IEnumerable<SecurityPatrolViewModel>? Patrols { get => GetValue(PatrolsProperty); set => SetValue(PatrolsProperty, value); }
     public string? MapId { get => GetValue(MapIdProperty); set => SetValue(MapIdProperty, value); }
     public double MapAspectRatio { get => GetValue(MapAspectRatioProperty); set => SetValue(MapAspectRatioProperty, value); }
+    public double ViewportZoom { get => GetValue(ViewportZoomProperty); set => SetValue(ViewportZoomProperty, value); }
     public bool ShowCameras { get => GetValue(ShowCamerasProperty); set => SetValue(ShowCamerasProperty, value); }
     public bool ShowGuards { get => GetValue(ShowGuardsProperty); set => SetValue(ShowGuardsProperty, value); }
     public bool IsEditMode { get => GetValue(IsEditModeProperty); set => SetValue(IsEditModeProperty, value); }
@@ -73,6 +75,7 @@ public sealed class ManualSecurityOverlayControl : Control
     {
         context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
         var rect = MapRect();
+        var markerScale = MapViewportMath.FixedMarkerScale(ViewportZoom);
         if (ShowGuards || IsEditMode)
         {
             foreach (var patrol in Patrols?.Where(item => item.MapId == MapId && (item.IsActive || IsEditMode)) ?? [])
@@ -83,16 +86,16 @@ public sealed class ManualSecurityOverlayControl : Control
                 {
                     var waypoint = patrol.Waypoints[index];
                     var center = Screen(waypoint.X, waypoint.Y, rect);
-                    context.DrawEllipse(null, PatrolPen, center, 3, 3);
+                    context.DrawEllipse(null, MarkerPen(PatrolPen), center, 3 * markerScale, 3 * markerScale);
                     if (IsEditMode && patrol == SelectedPatrol && index == SelectedWaypointIndex)
-                        context.DrawEllipse(null, SelectedPen, center, 8, 8);
+                        context.DrawEllipse(null, MarkerPen(SelectedPen), center, 8 * markerScale, 8 * markerScale);
                 }
             }
             foreach (var guard in Guards?.Where(item => item.MapId == MapId && (item.IsActive || IsEditMode)) ?? [])
             {
                 var center = Screen(guard.X, guard.Y, rect);
                 using var opacity = context.PushOpacity(guard.IsActive ? 1 : .25);
-                context.DrawEllipse(GuardBrush, guard == SelectedGuard ? SelectedPen : null, center, 7, 7);
+                context.DrawEllipse(GuardBrush, guard == SelectedGuard ? MarkerPen(SelectedPen) : null, center, 7 * markerScale, 7 * markerScale);
             }
         }
         if (ShowCameras || IsEditMode)
@@ -105,15 +108,16 @@ public sealed class ManualSecurityOverlayControl : Control
                 var geometry = new StreamGeometry();
                 using (var gc = geometry.Open())
                 {
-                    gc.BeginFigure(Screen(cone.Origin.X, cone.Origin.Y, rect), true);
-                    gc.LineTo(Screen(cone.Left.X, cone.Left.Y, rect));
-                    gc.LineTo(Screen(cone.Right.X, cone.Right.Y, rect));
+                    gc.BeginFigure(Screen(cone.NearLeft.X, cone.NearLeft.Y, rect), true);
+                    foreach (var arcPoint in cone.FarArc)
+                        gc.LineTo(Screen(arcPoint.X, arcPoint.Y, rect));
+                    gc.LineTo(Screen(cone.NearRight.X, cone.NearRight.Y, rect));
                     gc.EndFigure(true);
                 }
                 context.DrawGeometry(VisionBrush, VisionPen, geometry);
                 var center = Screen(camera.X, camera.Y, rect);
-                CameraIcon.Draw(context, center, camera.RotationDegrees - 90);
-                if (camera == SelectedCamera) context.DrawEllipse(null, SelectedPen, center, 13, 13);
+                CameraIcon.Draw(context, center, camera.RotationDegrees - 90, visualScale: markerScale);
+                if (camera == SelectedCamera) context.DrawEllipse(null, MarkerPen(SelectedPen), center, 13 * markerScale, 13 * markerScale);
             }
         }
     }
@@ -127,7 +131,7 @@ public sealed class ManualSecurityOverlayControl : Control
         {
             for (var index = 0; index < patrol.Waypoints.Count; index++)
             {
-                if (Distance(point, Screen(patrol.Waypoints[index].X, patrol.Waypoints[index].Y, rect)) > 10) continue;
+                if (Distance(point, Screen(patrol.Waypoints[index].X, patrol.Waypoints[index].Y, rect)) > 10 * MapViewportMath.FixedMarkerScale(ViewportZoom)) continue;
                 SelectWaypointCommand?.Execute(new SecurityWaypointSelection(patrol.Id, index));
                 _dragKind = "waypoint";
                 _dragId = patrol.Id;
@@ -136,9 +140,9 @@ public sealed class ManualSecurityOverlayControl : Control
                 return;
             }
         }
-        var camera = Cameras?.Where(item => item.MapId == MapId).OrderBy(item => Distance(point, Screen(item.X, item.Y, rect))).FirstOrDefault(item => Distance(point, Screen(item.X, item.Y, rect)) <= 14);
+        var camera = Cameras?.Where(item => item.MapId == MapId).OrderBy(item => Distance(point, Screen(item.X, item.Y, rect))).FirstOrDefault(item => Distance(point, Screen(item.X, item.Y, rect)) <= 14 * MapViewportMath.FixedMarkerScale(ViewportZoom));
         if (camera is not null) { SelectCameraCommand?.Execute(camera.Id); BeginDrag(e, "camera", camera.Id); return; }
-        var guard = Guards?.Where(item => item.MapId == MapId).OrderBy(item => Distance(point, Screen(item.X, item.Y, rect))).FirstOrDefault(item => Distance(point, Screen(item.X, item.Y, rect)) <= 14);
+        var guard = Guards?.Where(item => item.MapId == MapId).OrderBy(item => Distance(point, Screen(item.X, item.Y, rect))).FirstOrDefault(item => Distance(point, Screen(item.X, item.Y, rect)) <= 14 * MapViewportMath.FixedMarkerScale(ViewportZoom));
         if (guard is not null) { SelectGuardCommand?.Execute(guard.Id); BeginDrag(e, "guard", guard.Id); return; }
         if (Normalize(point, rect, out var normalized)) PlaceCommand?.Execute(normalized);
     }
@@ -160,4 +164,5 @@ public sealed class ManualSecurityOverlayControl : Control
     private static Point Screen(double x, double y, Rect rect) => new(rect.X + x * rect.Width, rect.Y + y * rect.Height);
     private static bool Normalize(Point p, Rect rect, out MapPoint result) { if (!rect.Contains(p)) { result = default; return false; } result = new((p.X - rect.X) / rect.Width, (p.Y - rect.Y) / rect.Height); return true; }
     private static double Distance(Point a, Point b) => Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+    private Pen MarkerPen(Pen pen) => new(pen.Brush, pen.Thickness * MapViewportMath.FixedMarkerScale(ViewportZoom));
 }

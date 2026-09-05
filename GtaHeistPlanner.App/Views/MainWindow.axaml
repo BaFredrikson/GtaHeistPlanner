@@ -18,16 +18,18 @@
           <TextBlock Text="GTA HEIST PLANNER" FontSize="17" FontWeight="Bold" Foreground="#F3C969" />
           <TextBlock Text="Kortz Center" FontSize="10" Foreground="#98A4B3" />
         </StackPanel>
-        <ListBox Grid.Column="1" HorizontalAlignment="Center" ItemsSource="{Binding PlayerCountOptions}"
+        <controls:NoWheelListBox Grid.Column="1" HorizontalAlignment="Center" ItemsSource="{Binding PlayerCountOptions}"
                  SelectedItem="{Binding SelectedPlayerCountOption}" Background="Transparent" BorderThickness="0">
           <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBox.ItemTemplate><DataTemplate x:DataType="models:PlayerCountOption"><TextBlock Text="{Binding Label}" Margin="11,5" FontWeight="SemiBold" /></DataTemplate></ListBox.ItemTemplate>
-        </ListBox>
+        </controls:NoWheelListBox>
         <Button Grid.Column="2" Width="38" Height="38" CornerRadius="19" Padding="0"
                 Background="{Binding MicrophoneColor}" Command="{Binding ToggleMicrophoneCommand}"
                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                 ToolTip.Tip="{Binding MicrophoneStatusText}">
-          <Viewbox Width="17" Height="17"><Path Fill="White" Data="M8,1 A3,3 0 0 1 11,4 L11,8 A3,3 0 0 1 5,8 L5,4 A3,3 0 0 1 8,1 M3,7 L3,8 A5,5 0 0 0 7,12.9 L7,15 L4.5,15 L4.5,17 L11.5,17 L11.5,15 L9,15 L9,12.9 A5,5 0 0 0 13,8 L13,7 L11.5,7 L11.5,8 A3.5,3.5 0 0 1 4.5,8 L4.5,7 Z" /></Viewbox>
+          <Grid Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Path Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Fill="White" Data="M8,1 A3,3 0 0 1 11,4 L11,8 A3,3 0 0 1 5,8 L5,4 A3,3 0 0 1 8,1 M3,7 L3,8 A5,5 0 0 0 7,12.9 L7,15 L4.5,15 L4.5,17 L11.5,17 L11.5,15 L9,15 L9,12.9 A5,5 0 0 0 13,8 L13,7 L11.5,7 L11.5,8 A3.5,3.5 0 0 1 4.5,8 L4.5,7 Z" />
+          </Grid>
         </Button>
         <Button Grid.Column="3" Width="38" Height="38" Padding="0"
                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
@@ -40,11 +42,11 @@
     </Border>
 
     <Border Grid.Row="1" Background="#141920" BorderBrush="#303946" BorderThickness="0,0,0,1" Padding="18,5">
-      <ListBox ItemsSource="{Binding StageOptions}" SelectedItem="{Binding SelectedStageOption}"
+      <controls:NoWheelListBox ItemsSource="{Binding StageOptions}" SelectedItem="{Binding SelectedStageOption}"
                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0">
         <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ListBox.ItemsPanel>
         <ListBox.ItemTemplate><DataTemplate x:DataType="models:PlannerStageOption"><TextBlock Text="{Binding Label}" Margin="22,7" FontWeight="SemiBold" /></DataTemplate></ListBox.ItemTemplate>
-      </ListBox>
+      </controls:NoWheelListBox>
     </Border>
 
     <Border Grid.Row="2" Margin="24" Padding="24" Background="#181E26" BorderBrush="#303946"
@@ -81,7 +83,7 @@
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MapCardViewModel">
-                  <views:MapCardView Height="430" />
+                  <views:MapCardView />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -212,21 +214,12 @@
 
                 <StackPanel Spacing="7" IsVisible="{Binding IsSewerSelected}">
                   <Separator Margin="0,8,0,3" /><TextBlock Text="SEWER ESCAPE ROUTE" FontWeight="Bold" Foreground="#F3C969" />
-                  <TextBox Text="{Binding SewerRouteInput}" PlaceholderText="L R R L" />
+                  <TextBox Text="{Binding SewerRouteInput}" PlaceholderText="2C 3C 4D" />
                   <Button Content="Apply route" Command="{Binding ApplySewerRouteCommand}" />
                   <TextBlock Text="{Binding SewerDiagnostic}" FontSize="11" Foreground="#FFB8B8" TextWrapping="Wrap" />
-                  <StackPanel Spacing="6" IsVisible="{Binding IsSewerEditorVisible}">
-                    <TextBlock Text="GRAPH AUTHORING" FontWeight="Bold" Foreground="#E8A65A" />
-                    <TextBlock Text="Click to add junctions; drag to move." FontSize="10" Foreground="#98A4B3" />
-                    <TextBlock Text="{Binding SelectedSewerNode.Id, StringFormat='Selected: {0}'}" />
-                    <Button Content="Set selected as entrance" Command="{Binding SetSewerStartNodeCommand}" />
-                    <TextBlock Text="Connect selected node to:" />
-                    <ComboBox ItemsSource="{Binding SewerNodes}" SelectedItem="{Binding SewerConnectionTarget}" />
-                    <ComboBox ItemsSource="{Binding SewerTurns}" SelectedItem="{Binding NewSewerConnectionTurn}" />
-                    <Button Content="Add connection" Command="{Binding AddSewerConnectionCommand}" />
-                    <Button Content="Save sewer graph" Command="{Binding SaveSewerGraphCommand}" />
-                    <TextBlock Text="{Binding SewerGraphPath}" FontSize="9" Foreground="#687484" TextWrapping="Wrap" />
-                  </StackPanel>
+                  <TextBlock Text="Topology is authored in the sewer JSON using chamber-letter labels and neutral physical path IDs."
+                             FontSize="10" Foreground="#687484" TextWrapping="Wrap" IsVisible="{Binding DeveloperMode}" />
+                  <TextBlock Text="{Binding SewerGraphPath}" FontSize="9" Foreground="#687484" TextWrapping="Wrap" IsVisible="{Binding DeveloperMode}" />
                 </StackPanel>
               </StackPanel>
             </ScrollViewer>
