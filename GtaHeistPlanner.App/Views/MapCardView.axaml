@@ -27,10 +27,11 @@
               ViewportZoom="{Binding Viewport.Zoom}"
               MapAspectRatio="{Binding Map.AspectRatio}" IsLootEditMode="{Binding IsLootEditMode}"
               SelectedLoot="{Binding Owner.SelectedLoot}" LootRevision="{Binding Owner.LootRevision}"
-              CreateLootCommand="{Binding CreateLootCommand}" MoveLootCommand="{Binding MoveLootCommand}"
+              CreateLootCommand="{Binding CreateLootCommand}"
               SelectLootCommand="{Binding SelectLootCommand}" />
           <controls:ManualSecurityOverlayControl Cameras="{Binding Owner.SecurityCameras}" Guards="{Binding Owner.SecurityGuards}"
               Patrols="{Binding Owner.SecurityPatrols}" MapId="{Binding Map.Id}"
+              IsHitTestVisible="{Binding IsSecurityEditMode}"
               ViewportZoom="{Binding Viewport.Zoom}"
               MapAspectRatio="{Binding Map.AspectRatio}" ShowCameras="{Binding ShowCameras}"
               ShowGuards="{Binding ShowGuards}" IsEditMode="{Binding IsSecurityEditMode}"

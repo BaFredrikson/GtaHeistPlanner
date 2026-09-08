@@ -26,6 +26,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly RecordingDeviceService _recordingDeviceService = new();
     private readonly SewerGraphStore _sewerGraphStore = new();
     private readonly SecurityDatasetStore _securityDatasetStore = new();
+    private readonly HeistSessionStore _heistSessionStore;
     private readonly MapCalibration _initialCalibration;
     private ApplicationSettings? _settingsSnapshot;
     private LootRunState _lootRun = new([]);
@@ -36,6 +37,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly DispatcherTimer _voiceUiHeartbeatTimer;
     private int _audioUiUpdatePending;
     private ScopeOutVoiceSession? _scopeOutSession;
+    private VoiceCommandParser _voiceCommandParser = new([]);
+    private readonly VoiceCommandContext _voiceContext = new();
+    private readonly Stack<(string Description, Action Undo)> _voiceUndo = new();
+    private Guid _heistId = Guid.NewGuid();
+    private DateTimeOffset _heistCreatedAtUtc = DateTimeOffset.UtcNow;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedMapAssetUri))]
@@ -82,6 +88,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsPlanningStage))]
     [NotifyPropertyChangedFor(nameof(IsMapStage))]
     [NotifyPropertyChangedFor(nameof(IsActivityStage))]
+    [NotifyPropertyChangedFor(nameof(IsInfiltrationStage))]
     [NotifyPropertyChangedFor(nameof(IsPreparationStage))]
     public partial PlannerStage CurrentStage { get; set; } = PlannerStage.Preparation;
     [ObservableProperty]
@@ -132,6 +139,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial int SecurityRevision { get; set; }
     [ObservableProperty] public partial string? SecurityStatus { get; set; }
     [ObservableProperty] public partial string? VaultCode { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GuardsDownDisplay))]
+    public partial int GuardsDown { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CamerasDownDisplay))]
+    public partial int CamerasDown { get; set; }
     [ObservableProperty] public partial string VoiceRecognitionState { get; set; } = "Stopped";
     [ObservableProperty] public partial string? LastRecognizedText { get; set; }
     [ObservableProperty] public partial string? LastParsedVoiceCommand { get; set; }
@@ -141,6 +154,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string? VoiceStartupDiagnostics { get; set; }
     [ObservableProperty] public partial string? CurrentPartialTranscript { get; set; }
     [ObservableProperty] public partial DateTimeOffset? VoiceUiHeartbeat { get; set; }
+    [ObservableProperty] public partial bool IsNewHeistConfirmationOpen { get; set; }
+    [ObservableProperty] public partial bool IsEndHeistConfirmationOpen { get; set; }
+    [ObservableProperty] public partial bool IsLoadHeistConfirmationOpen { get; set; }
+    private string? _pendingLoadHeistPath;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFocusedMap))]
     [NotifyPropertyChangedFor(nameof(FocusedMapCard))]
@@ -182,6 +199,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsPlanningStage => CurrentStage == PlannerStage.Planning;
     public bool IsMapStage => !IsPlanningStage;
     public bool IsActivityStage => CurrentStage == PlannerStage.HeistActivity;
+    public bool IsInfiltrationStage => CurrentStage == PlannerStage.HeistInfiltration;
     public bool IsPreparationStage => CurrentStage == PlannerStage.Preparation;
     public bool HasSelectedPatrolWaypoint => SelectedSecurityPatrol is not null && SelectedPatrolWaypointIndex >= 0;
     public bool HasFocusedMap => FocusedMapId is not null;
@@ -189,7 +207,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsSewerSelected => SelectedMap.Id == "sewer";
     public LootPlanningSummary PlanningSummary => LootPlanningSummaryCalculator.Calculate(
         LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount);
+    public PlanningAnalysis PlanningAnalysis => HeistPlanningAnalyzer.Analyze(
+        LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount);
     public string PlanningValueRange => $"${PlanningSummary.EstimatedMinValue:N0} – ${PlanningSummary.EstimatedMaxValue:N0}";
+    public string PlanningKnownValue => $"${PlanningAnalysis.KnownExactValue:N0}";
+    public string PlanningEstimatedRange => $"${PlanningAnalysis.EstimatedMinValue:N0}–${PlanningAnalysis.EstimatedMaxValue:N0}";
+    public string PlanningPotentialRange => $"${PlanningAnalysis.PotentialMinValue:N0}–${PlanningAnalysis.PotentialMaxValue:N0}";
+    public string RecommendedHaulRange => $"${PlanningAnalysis.RecommendedHaul.TotalMinPotentialValue:N0}–${PlanningAnalysis.RecommendedHaul.TotalMaxPotentialValue:N0}";
     public string StageTitle => StageOptions.Single(option => option.Stage == CurrentStage).Label;
     public string StageDescription => CurrentStage switch
     {
@@ -246,12 +270,26 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public string SettingsPath => _settingsStore.FilePath;
     public string SewerGraphPath => _sewerGraphStore.FilePath;
     public string SecurityDataPath => _securityDatasetStore.FilePath;
-    public ScopeOutSessionState ScopeOutState => _scopeOutSession?.State ?? ScopeOutSessionState.Inactive;
+    public ScopeOutSessionState ScopeOutState => MicrophoneStatus == MicrophoneStatus.Off
+        ? ScopeOutSessionState.Inactive
+        : _voiceContext.ScopeOutActive ? ScopeOutSessionState.Active : ScopeOutSessionState.WaitingForActivation;
 
     public string ConfiguredCaptureDevice => SelectedRecordingDevice is null
         ? "No recording device selected"
         : $"{SelectedRecordingDevice.Name} ({SelectedRecordingDevice.Id})";
     public string TransmittedAudioFormat => "24,000 Hz, 16-bit mono PCM";
+    public string GuardsDownDisplay => $"Guards down: {GuardsDown}";
+    public string CamerasDownDisplay => $"Cameras down: {CamerasDown} / {HeistSessionState.CameraDisableLimit}";
+    public string VoiceContextSummary => $"Last loot: {_voiceContext.LastMentionedLootId ?? "—"}; pending: {_voiceContext.PendingMode}; focus: {FocusedMapId ?? "overview"}; undo: {_voiceUndo.Count} ({_voiceContext.LastReversibleAction ?? "—"})";
+    public string ActivityLootSummary
+    {
+        get
+        {
+            var collected = LootMarkers.Where(marker => marker.IsLooted).ToArray();
+            return $"Secondary loot: {collected.Length} collected · ${collected.Sum(marker => marker.ScopedValue ?? 0):N0} known · {collected.Sum(marker => marker.Economics.BagPercent)}% bag";
+        }
+    }
+    public string HeistSavePath => _heistSessionStore.FilePath;
 
     public MainViewModel() : this(
         new OpenAiRealtimeSpeechRecognitionService(diagnostics: new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess())),
@@ -261,10 +299,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public MainViewModel(
         ISpeechRecognitionService speechRecognitionService,
-        IAudioCaptureService audioCaptureService)
+        IAudioCaptureService audioCaptureService,
+        HeistSessionStore? heistSessionStore = null)
     {
         _speechRecognitionService = speechRecognitionService;
         _audioCaptureService = audioCaptureService;
+        _heistSessionStore = heistSessionStore ?? new HeistSessionStore();
         _inputDetectedResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _inputDetectedResetTimer.Tick += (_, _) =>
         {
@@ -290,6 +330,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         LoadLootLayout();
         LoadSewerGraph();
         LoadSecurityDataset();
+        LoadCurrentHeistOnStartup();
     }
 
     [RelayCommand]
@@ -329,6 +370,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (value != PlannerStage.Preparation && ScopeOutState == ScopeOutSessionState.Active)
         {
             _scopeOutSession?.SetListening(MicrophoneStatus != MicrophoneStatus.Off);
+            _voiceContext.ScopeOutActive = false;
+            _voiceContext.PendingLootValueTargetId = null;
             OnPropertyChanged(nameof(ScopeOutState));
         }
         ApplyStagePolicy();
@@ -401,8 +444,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _audioCaptureService.Start(endpointId);
             var keywords = LootMarkers
                 .SelectMany(marker => marker.VoiceAliases.Append(marker.Name))
-                .Concat(["scope out", "stop scope out", "painting", "rings", "loading bay cargo",
-                    "safety deposit boxes", "Buyer's Request", "Glass Cutter", "Power Drills", "Coquard"])
+                .Concat(KortzMapCatalog.Maps.Select(map => map.DisplayName))
+                .Concat(SewerConnections.SelectMany(connection => SewerVocabulary(connection)))
+                .Concat(["scope out", "stop scope out", "special loot", "buyer's request", "vault code",
+                    "plan out", "plan it", "pan out", "pan it", "overview", "heist start", "start heist",
+                    "start infiltration", "infiltration start", "tango down", "dropped guard", "camera down",
+                    "charlie down", "going down skylight", "using access codes", "alpha mail arriving",
+                    "sewer grate reached", "sewer route", "chamber", "alpha", "bravo", "charlie", "delta", "echo",
+                    "outta the sewers", "pull up", "pull back", "back up", "undo",
+                    "painting", "rings", "loading bay cargo", "safety deposit boxes", "Glass Cutter", "Power Drills", "Coquard"])
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             await _speechRecognitionService.StartAsync(_audioCaptureService.Format, keywords);
@@ -436,8 +486,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         await _speechRecognitionService.StopAsync();
         MicrophoneStatus = MicrophoneStatus.Off;
         _scopeOutSession?.SetListening(false);
+        _voiceContext.ScopeOutActive = false;
+        _voiceContext.PendingLootValueTargetId = null;
         VoiceRecognitionState = _speechRecognitionService.StateDescription;
         OnPropertyChanged(nameof(ScopeOutState));
+        RefreshVoiceContextDiagnostics();
         _speechRecognitionService.Diagnostics.RecordMilestone("UI microphone stop completed");
     }
 
@@ -532,37 +585,198 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         LastParsedVoiceCommand = null;
         VoiceCommandError = null;
 
-        if (MicrophoneStatus == MicrophoneStatus.Off || _scopeOutSession is null)
+        if (MicrophoneStatus == MicrophoneStatus.Off)
         {
             VoiceCommandError = "Microphone is off.";
             AddVoiceTranscript(text, false);
             return;
         }
-        if (CurrentStage != PlannerStage.Preparation)
+        var parse = _voiceCommandParser.Parse(text, _voiceContext, CurrentStage);
+        LastParsedVoiceCommand = parse.Command?.GetType().Name ?? parse.Disposition.ToString();
+        VoiceCommandError = parse.Error;
+        var applied = parse.Command is not null && ExecuteVoiceCommand(parse.Command);
+        AddVoiceTranscript(text, applied);
+        RefreshVoiceContextDiagnostics();
+    }
+
+    private bool ExecuteVoiceCommand(VoiceCommand command)
+    {
+        switch (command)
         {
-            VoiceCommandError = "Scope-out commands are only available during Preparation.";
-            AddVoiceTranscript(text, false);
-            return;
+            case ActivateScopeOutCommand:
+                CurrentStage = PlannerStage.Preparation;
+                _voiceContext.ScopeOutActive = true;
+                VoiceCommandError = null;
+                return true;
+            case DeactivateScopeOutCommand:
+                _voiceContext.ScopeOutActive = false;
+                _voiceContext.PendingLootValueTargetId = null;
+                return true;
+            case RecordScopedLootCommand loot:
+                return ApplyVoiceLoot(loot);
+            case SetPendingLootValueCommand value:
+                return ApplyPendingLootValue(value.ScopedValue);
+            case ToggleSpecialLootCommand:
+                return ToggleLastMentionedSpecialLoot();
+            case UndoVoiceCommand:
+                return UndoLastVoiceAction();
+            case FocusMapVoiceCommand focus:
+                if (!CurrentPolicy.AllowsMap(focus.MapId)) return RejectVoice("That map is not available in the current stage.");
+                FocusMap(focus.MapId);
+                return true;
+            case ExitMapFocusVoiceCommand:
+                ExitMapFocus();
+                return true;
+            case SetVaultCodeVoiceCommand vault:
+                if (vault.VaultCode is null) { _voiceContext.AwaitingVaultCode = true; return true; }
+                var oldCode = VaultCode;
+                VaultCode = vault.VaultCode;
+                _voiceContext.AwaitingVaultCode = false;
+                PushVoiceUndo($"vault code {vault.VaultCode}", () => VaultCode = oldCode);
+                return true;
+            case ChangeStageVoiceCommand stage:
+                if (stage.Stage == PlannerStage.HeistActivity && CurrentStage != PlannerStage.HeistInfiltration)
+                    return RejectVoice("An infiltration entry must be active before entering Activity.");
+                var oldStage = CurrentStage;
+                CurrentStage = stage.Stage;
+                PushVoiceUndo($"stage changed to {stage.Stage}", () => CurrentStage = oldStage);
+                return true;
+            case IncrementGuardsDownVoiceCommand:
+                if (CurrentStage != PlannerStage.HeistInfiltration) return RejectVoice("Guard counters are available during Infiltration.");
+                var oldGuards = GuardsDown;
+                GuardsDown++;
+                PushVoiceUndo("guard down", () => GuardsDown = oldGuards);
+                return true;
+            case IncrementCamerasDownVoiceCommand:
+                if (CurrentStage != PlannerStage.HeistInfiltration) return RejectVoice("Camera counters are available during Infiltration.");
+                if (CamerasDown >= HeistSessionState.CameraDisableLimit) return RejectVoice("Camera limit reached; disabling another camera would blow stealth.");
+                var oldCameras = CamerasDown;
+                CamerasDown++;
+                PushVoiceUndo("camera down", () => CamerasDown = oldCameras);
+                return true;
+            case EnterSewerRouteVoiceCommand:
+                CurrentStage = PlannerStage.HeistInfiltration;
+                FocusMap("sewer");
+                _voiceContext.AwaitingSewerRoute = true;
+                return true;
+            case ApplySewerRouteVoiceCommand route:
+                try
+                {
+                    CurrentStage = PlannerStage.HeistInfiltration;
+                    FocusMap("sewer");
+                    SewerRouteInput = route.RouteText;
+                    SetSewerRoute(SewerRouteParser.Parse(route.RouteText));
+                    if (!IsSewerRouteComplete) return RejectVoice($"Parsed: {route.RouteText}. {SewerDiagnostic ?? "Sewer route is incomplete."}");
+                    _voiceContext.AwaitingSewerRoute = false;
+                    SewerDiagnostic = $"Parsed: {route.RouteText}. {SewerDiagnostic}";
+                    return true;
+                }
+                catch (Exception exception) when (exception is FormatException or InvalidDataException)
+                {
+                    return RejectVoice(exception.Message);
+                }
+            case ExitSewerRouteVoiceCommand:
+                _voiceContext.AwaitingSewerRoute = false;
+                CurrentStage = PlannerStage.HeistActivity;
+                FocusedMapId = null;
+                return true;
+            default:
+                return RejectVoice("Unsupported voice command.");
         }
+    }
 
-        var result = _scopeOutSession.Process(text);
-        LastParsedVoiceCommand = result.ParseResult.Command?.GetType().Name
-            ?? result.ParseResult.Disposition.ToString();
-        VoiceCommandError = result.Error;
-        AddVoiceTranscript(text, result.ParseResult.Command is not null);
-        OnPropertyChanged(nameof(ScopeOutState));
+    private static IEnumerable<string> SewerVocabulary(SewerConnection connection)
+    {
+        yield return $"{connection.ChamberA} {connection.TunnelFromA}";
+        if (connection.ChamberB is { } chamber && connection.TunnelFromB is { } tunnel)
+            yield return $"{chamber} {tunnel}";
+    }
 
-        if (result.UpdatedLootLocationId is not { } lootId)
-            return;
-        var marker = LootMarkers.Single(item => item.Id == lootId);
-        marker.ApplyState(_lootRun.GetState(lootId));
+    private bool ApplyVoiceLoot(RecordScopedLootCommand command)
+    {
+        var state = _lootRun.GetState(command.LootLocationId);
+        var before = Snapshot(state);
+        if (CurrentStage == PlannerStage.HeistActivity)
+            _lootRun.SetLooted(command.LootLocationId, true);
+        else
+            _lootRun.RecordScopedLoot(command.LootLocationId, command.ScopedValue);
+        _voiceContext.LastMentionedLootId = command.LootLocationId;
+        _voiceContext.PendingLootValueTargetId = CurrentStage == PlannerStage.Preparation && command.ScopedValue is null ? command.LootLocationId : null;
+        PushVoiceUndo(CurrentStage == PlannerStage.HeistActivity ? "loot collected" : "loot scoped", () => RestoreLoot(command.LootLocationId, before));
+        RefreshVoiceLoot(command.LootLocationId);
+        return true;
+    }
+
+    private bool ApplyPendingLootValue(int value)
+    {
+        var id = _voiceContext.PendingLootValueTargetId;
+        if (!_voiceContext.ScopeOutActive || id is null) return RejectVoice("No loot target is awaiting a value.");
+        var state = _lootRun.GetState(id);
+        var before = Snapshot(state);
+        _lootRun.RecordScopedLoot(id, value);
+        _voiceContext.PendingLootValueTargetId = null;
+        PushVoiceUndo($"loot value ${value:N0}", () => RestoreLoot(id, before));
+        RefreshVoiceLoot(id);
+        return true;
+    }
+
+    private bool ToggleLastMentionedSpecialLoot()
+    {
+        var id = _voiceContext.LastMentionedLootId;
+        if (id is null) return RejectVoice("No previously mentioned loot target is available for Buyer's Request.");
+        var state = _lootRun.GetState(id);
+        var before = Snapshot(state);
+        if (!_lootRun.TrySetBuyersRequest(id, !state.IsBuyersRequest, out var error)) return RejectVoice(error!);
+        PushVoiceUndo("Buyer's Request toggled", () => RestoreLoot(id, before));
+        RefreshVoiceLoot(id);
+        return true;
+    }
+
+    private bool UndoLastVoiceAction()
+    {
+        if (!_voiceUndo.TryPop(out var action)) return RejectVoice("There is no reversible voice action to undo.");
+        action.Undo();
+        _voiceContext.LastReversibleAction = _voiceUndo.TryPeek(out var next) ? next.Description : null;
+        _speechRecognitionService.Diagnostics.Record($"Voice undo: {action.Description}");
+        RefreshLootState();
+        RefreshVoiceContextDiagnostics();
+        return true;
+    }
+
+    private void PushVoiceUndo(string description, Action undo)
+    {
+        _voiceUndo.Push((description, undo));
+        _voiceContext.LastReversibleAction = description;
+    }
+
+    private static (bool Present, bool Buyers, bool Looted, int? Value) Snapshot(LootSpawnState state) =>
+        (state.IsPresent, state.IsBuyersRequest, state.IsLooted, state.ScopedValue);
+
+    private void RestoreLoot(string id, (bool Present, bool Buyers, bool Looted, int? Value) value)
+    {
+        var state = _lootRun.GetState(id);
+        state.IsPresent = value.Present; state.IsBuyersRequest = value.Buyers; state.IsLooted = value.Looted; state.ScopedValue = value.Value;
+        RefreshVoiceLoot(id);
+    }
+
+    private void RefreshVoiceLoot(string id)
+    {
+        var marker = LootMarkers.Single(item => item.Id == id);
+        marker.ApplyState(_lootRun.GetState(id));
         SelectedLoot = marker;
         LootRevision++;
-        LastVoiceLootUpdate = result.ScopedValue is { } value
-            ? $"{lootId} = ${value:N0}"
-            : $"{lootId} marked present";
-        LootStatus = $"Voice scope-out updated {marker.Name}.";
+        LastVoiceLootUpdate = $"{marker.Name}: present={marker.IsPresent}, value={marker.ScopedValue?.ToString() ?? "—"}, special={marker.IsBuyersRequest}, looted={marker.IsLooted}";
         RefreshPlanningSummary();
+        OnPropertyChanged(nameof(ActivityLootSummary));
+        OnPropertyChanged(nameof(BuyersRequestStatus));
+    }
+
+    private bool RejectVoice(string error) { VoiceCommandError = error; return false; }
+    private void RefreshVoiceContextDiagnostics()
+    {
+        OnPropertyChanged(nameof(ScopeOutState));
+        OnPropertyChanged(nameof(VoiceContextSummary));
+        OnPropertyChanged(nameof(ActivityLootSummary));
     }
 
     [RelayCommand]
@@ -640,18 +854,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private void MoveLoot(LootMarkerMove move)
-    {
-        var marker = LootMarkers.FirstOrDefault(item => item.Id == move.SpawnId);
-        if (marker is null || !IsLootEditMode)
-            return;
-        marker.X = Math.Clamp(move.X, 0, 1);
-        marker.Y = Math.Clamp(move.Y, 0, 1);
-        LootRevision++;
-        LootStatus = "Unsaved layout changes";
-    }
-
-    [RelayCommand]
     private void SelectLoot(string spawnId) =>
         SelectedLoot = LootMarkers.FirstOrDefault(marker => marker.Id == spawnId);
 
@@ -684,6 +886,120 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         foreach (var patrol in SecurityPatrols) patrol.IsActive = true;
         RefreshLootState();
         LootStatus = "Heist loot state reset; permanent layout unchanged.";
+    }
+
+    [RelayCommand]
+    private void NewHeist()
+    {
+        IsNewHeistConfirmationOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelNewHeist() => IsNewHeistConfirmationOpen = false;
+
+    [RelayCommand]
+    private void ConfirmNewHeist()
+    {
+        IsNewHeistConfirmationOpen = false;
+        GuardsDown = 0;
+        CamerasDown = 0;
+        FocusedMapId = null;
+        SewerRouteInput = string.Empty;
+        HighlightedSewerPathIds.Clear();
+        IsSewerRouteComplete = false;
+        SewerDiagnostic = null;
+        _voiceContext.Reset();
+        _voiceUndo.Clear();
+        CurrentStage = PlannerStage.HeistInfiltration;
+        foreach (var state in _lootRun.States) state.IsLooted = false;
+        foreach (var camera in SecurityCameras) camera.IsActive = true;
+        foreach (var guard in SecurityGuards) guard.IsActive = true;
+        foreach (var patrol in SecurityPatrols) patrol.IsActive = true;
+        RefreshLootState();
+        RefreshVoiceContextDiagnostics();
+        SaveHeistCore();
+        SaveStatus = "New attempt started. Preparation and planning data were preserved.";
+    }
+
+    [RelayCommand]
+    private void SaveHeist()
+    {
+        try
+        {
+            SaveHeistCore();
+            SaveStatus = $"Heist saved to {_heistSessionStore.FilePath}";
+        }
+        catch (Exception exception)
+        {
+            SaveStatus = $"Could not save heist: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void LoadHeist(string? sourcePath)
+    {
+        _pendingLoadHeistPath = string.IsNullOrWhiteSpace(sourcePath) ? _heistSessionStore.FilePath : sourcePath;
+        IsLoadHeistConfirmationOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelLoadHeist()
+    {
+        _pendingLoadHeistPath = null;
+        IsLoadHeistConfirmationOpen = false;
+    }
+
+    [RelayCommand]
+    private void ConfirmLoadHeist()
+    {
+        var sourcePath = _pendingLoadHeistPath;
+        CancelLoadHeist();
+        if (sourcePath is null) return;
+        try
+        {
+            ApplyHeistSave(_heistSessionStore.Load(sourcePath));
+            SaveHeistCore();
+            SaveStatus = $"Loaded heist from {sourcePath}";
+        }
+        catch (Exception exception)
+        {
+            SaveStatus = $"Could not load heist: {exception.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void EndHeist() => IsEndHeistConfirmationOpen = true;
+
+    [RelayCommand]
+    private void CancelEndHeist() => IsEndHeistConfirmationOpen = false;
+
+    [RelayCommand]
+    private async Task ConfirmEndHeist()
+    {
+        IsEndHeistConfirmationOpen = false;
+        if (MicrophoneStatus != MicrophoneStatus.Off)
+            await StopVoiceRecognitionAsync();
+        _heistSessionStore.DeleteCurrent();
+        _lootRun.ResetLootState();
+        PlayerCount = 1;
+        CurrentStage = PlannerStage.Preparation;
+        VaultCode = null;
+        GuardsDown = 0;
+        CamerasDown = 0;
+        _voiceContext.Reset();
+        _voiceUndo.Clear();
+        FocusedMapId = null;
+        SewerRouteInput = string.Empty;
+        HighlightedSewerPathIds.Clear();
+        IsSewerRouteComplete = false;
+        foreach (var camera in SecurityCameras) camera.IsActive = true;
+        foreach (var guard in SecurityGuards) guard.IsActive = true;
+        foreach (var patrol in SecurityPatrols) patrol.IsActive = true;
+        RefreshLootState();
+        RefreshVoiceContextDiagnostics();
+        _heistId = Guid.NewGuid();
+        _heistCreatedAtUtc = DateTimeOffset.UtcNow;
+        SaveStatus = "Current heist ended and all session progress was cleared.";
     }
 
     [RelayCommand]
@@ -978,6 +1294,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void ExitMapFocus() => FocusedMapId = null;
 
+    partial void OnFocusedMapIdChanged(string? value) => RefreshVoiceContextDiagnostics();
+
     private void OnSecurityObjectChanged(object? sender, PropertyChangedEventArgs e)
     {
         SecurityRevision++;
@@ -1016,6 +1334,107 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         if (selectedId is null || !policy.AllowsMap(selectedId))
             SelectedMap = Maps.First();
+    }
+
+    private HeistSaveFile BuildHeistSave() => new()
+    {
+        HeistId = _heistId,
+        CreatedAtUtc = _heistCreatedAtUtc,
+        LastSavedAtUtc = DateTimeOffset.UtcNow,
+        PlayerCount = PlayerCount,
+        Stage = CurrentStage,
+        VaultCode = VaultCode,
+        GuardsDown = GuardsDown,
+        CamerasDown = CamerasDown,
+        FocusedMapId = FocusedMapId,
+        LootStates = _lootRun.States.ToDictionary(state => state.SpawnId, state =>
+            new HeistLootState(state.IsPresent, state.ScopedValue, state.IsBuyersRequest, state.IsLooted), StringComparer.Ordinal),
+        SewerRuntimeState = new SewerRuntimeSaveState
+        {
+            RouteInput = SewerRouteInput,
+            IsRouteComplete = IsSewerRouteComplete,
+            HighlightedPathIds = HighlightedSewerPathIds.ToArray(),
+        },
+        SecurityRuntimeState = new SecurityRuntimeSaveState
+        {
+            ActiveCameraIds = SecurityCameras.Where(item => item.IsActive).Select(item => item.Id).ToArray(),
+            ActiveGuardIds = SecurityGuards.Where(item => item.IsActive).Select(item => item.Id).ToArray(),
+            ActivePatrolIds = SecurityPatrols.Where(item => item.IsActive).Select(item => item.Id).ToArray(),
+        },
+    };
+
+    private void SaveHeistCore() => _heistSessionStore.Save(BuildHeistSave());
+
+    private void LoadCurrentHeistOnStartup()
+    {
+        if (!_heistSessionStore.Exists)
+        {
+            SaveStatus = "No current heist save found; started a fresh Preparation session.";
+            return;
+        }
+        try
+        {
+            ApplyHeistSave(_heistSessionStore.Load());
+            SaveStatus = $"Current heist restored from {_heistSessionStore.FilePath}";
+        }
+        catch (Exception exception)
+        {
+            SaveStatus = $"Current heist save could not be loaded: {exception.Message}. A fresh session was started; the bad file was preserved.";
+        }
+    }
+
+    private void ApplyHeistSave(HeistSaveFile save)
+    {
+        var knownLootIds = _lootRun.States.Select(state => state.SpawnId).ToHashSet(StringComparer.Ordinal);
+        var unknownLoot = save.LootStates.Keys.FirstOrDefault(id => !knownLootIds.Contains(id));
+        if (unknownLoot is not null) throw new InvalidDataException($"Save references unknown loot ID '{unknownLoot}'.");
+        var knownPaths = SewerPaths.Select(path => path.Id).ToHashSet(StringComparer.Ordinal);
+        var unknownPath = save.SewerRuntimeState.HighlightedPathIds.FirstOrDefault(id => !knownPaths.Contains(id));
+        if (unknownPath is not null) throw new InvalidDataException($"Save references unknown sewer path '{unknownPath}'.");
+        ValidateRuntimeIds(save.SecurityRuntimeState.ActiveCameraIds, SecurityCameras.Select(item => item.Id), "camera");
+        ValidateRuntimeIds(save.SecurityRuntimeState.ActiveGuardIds, SecurityGuards.Select(item => item.Id), "guard");
+        ValidateRuntimeIds(save.SecurityRuntimeState.ActivePatrolIds, SecurityPatrols.Select(item => item.Id), "patrol");
+
+        _lootRun.ResetLootState();
+        foreach (var (id, saved) in save.LootStates)
+        {
+            var state = _lootRun.GetState(id);
+            state.IsPresent = saved.IsPresent;
+            state.ScopedValue = saved.ScopedValue;
+            state.IsBuyersRequest = saved.IsBuyersRequest;
+            state.IsLooted = saved.IsLooted;
+        }
+        _heistId = save.HeistId;
+        _heistCreatedAtUtc = save.CreatedAtUtc;
+        PlayerCount = save.PlayerCount;
+        VaultCode = save.VaultCode;
+        GuardsDown = save.GuardsDown;
+        CamerasDown = save.CamerasDown;
+        CurrentStage = save.Stage;
+        SewerRouteInput = save.SewerRuntimeState.RouteInput;
+        IsSewerRouteComplete = save.SewerRuntimeState.IsRouteComplete;
+        HighlightedSewerPathIds.Clear();
+        foreach (var pathId in save.SewerRuntimeState.HighlightedPathIds) HighlightedSewerPathIds.Add(pathId);
+        var activeCameras = save.SecurityRuntimeState.ActiveCameraIds.ToHashSet(StringComparer.Ordinal);
+        var activeGuards = save.SecurityRuntimeState.ActiveGuardIds.ToHashSet(StringComparer.Ordinal);
+        var activePatrols = save.SecurityRuntimeState.ActivePatrolIds.ToHashSet(StringComparer.Ordinal);
+        foreach (var item in SecurityCameras) item.IsActive = activeCameras.Contains(item.Id);
+        foreach (var item in SecurityGuards) item.IsActive = activeGuards.Contains(item.Id);
+        foreach (var item in SecurityPatrols) item.IsActive = activePatrols.Contains(item.Id);
+        SewerRevision++;
+        FocusedMapId = save.FocusedMapId is { } focus && CurrentPolicy.AllowsMap(focus) ? focus : null;
+        if (FocusedMapId is { } selected) SelectedMap = KortzMapCatalog.GetById(selected);
+        _voiceContext.Reset();
+        _voiceUndo.Clear();
+        RefreshLootState();
+        RefreshVoiceContextDiagnostics();
+    }
+
+    private static void ValidateRuntimeIds(IEnumerable<string> savedIds, IEnumerable<string> authoredIds, string kind)
+    {
+        var known = authoredIds.ToHashSet(StringComparer.Ordinal);
+        var unknown = savedIds.FirstOrDefault(id => !known.Contains(id));
+        if (unknown is not null) throw new InvalidDataException($"Save references unknown {kind} ID '{unknown}'.");
     }
 
     private void LoadSettings()
@@ -1066,10 +1485,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             LootMarkers.Add(marker);
         }
         _scopeOutSession = new ScopeOutVoiceSession(_lootRun.Definitions, _lootRun);
+        _voiceCommandParser = new VoiceCommandParser(_lootRun.Definitions, KortzMapCatalog.Maps);
         _scopeOutSession.SetListening(MicrophoneStatus != MicrophoneStatus.Off);
         OnPropertyChanged(nameof(ScopeOutState));
         LootRevision++;
         OnPropertyChanged(nameof(BuyersRequestStatus));
+        OnPropertyChanged(nameof(ActivityLootSummary));
         RefreshPlanningSummary();
     }
 
@@ -1095,7 +1516,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void RefreshPlanningSummary()
     {
         OnPropertyChanged(nameof(PlanningSummary));
+        OnPropertyChanged(nameof(PlanningAnalysis));
         OnPropertyChanged(nameof(PlanningValueRange));
+        OnPropertyChanged(nameof(PlanningKnownValue));
+        OnPropertyChanged(nameof(PlanningEstimatedRange));
+        OnPropertyChanged(nameof(PlanningPotentialRange));
+        OnPropertyChanged(nameof(RecommendedHaulRange));
     }
 
     partial void OnScaleXChanged(double value) => UpdateCalibration();

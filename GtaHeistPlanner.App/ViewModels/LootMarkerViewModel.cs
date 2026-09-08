@@ -9,6 +9,7 @@ public partial class LootMarkerViewModel : ViewModelBase
     public string Id { get; }
     public string MapId { get; }
     public IReadOnlyList<string> VoiceAliases { get; }
+    public string LabelText => Name;
 
     [ObservableProperty] public partial string Name { get; set; }
     [ObservableProperty] public partial LootType Type { get; set; }
@@ -82,6 +83,8 @@ public partial class LootMarkerViewModel : ViewModelBase
         OnPropertyChanged(nameof(EstimatedValueDisplay));
         OnPropertyChanged(nameof(PrepDisplay));
     }
+
+    partial void OnNameChanged(string value) => OnPropertyChanged(nameof(LabelText));
 
     partial void OnZoneIdChanged(string? value)
     {

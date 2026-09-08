@@ -52,7 +52,7 @@
     {
       "id": "basement-loot-06",
       "mapId": "basement",
-      "name": "Loot 06",
+      "name": "Safety box left",
       "type": "SafetyDepositBoxes",
       "x": 0.22676200204290092,
       "y": 0.8638297133732166,
@@ -61,7 +61,7 @@
     {
       "id": "basement-loot-07",
       "mapId": "basement",
-      "name": "Loot 07",
+      "name": "Safety box right",
       "type": "SafetyDepositBoxes",
       "x": 0.27936670071501535,
       "y": 0.8638297133732166,
@@ -70,7 +70,7 @@
     {
       "id": "lower-floor-loot-01",
       "mapId": "lower-floor",
-      "name": "Bottom target rings",
+      "name": "Bottom rings",
       "type": "CoquardJewelry",
       "x": 0.17766403607666292,
       "y": 0.9072,
@@ -79,7 +79,7 @@
     {
       "id": "lower-floor-loot-02",
       "mapId": "lower-floor",
-      "name": "Bottom target egg",
+      "name": "Bottom egg",
       "type": "FertilityStatue",
       "x": 0.27642690717775276,
       "y": 0.9072,
@@ -88,7 +88,7 @@
     {
       "id": "lower-floor-loot-03",
       "mapId": "lower-floor",
-      "name": "Bottom target diamond skull",
+      "name": "Diamond skull",
       "type": "VerticalDisplayGlassCase",
       "x": 0.3100714017286734,
       "y": 0.9072,
@@ -98,6 +98,11 @@
       "id": "main-floor-loot-01",
       "mapId": "main-floor",
       "name": "Main rings and bracelets south south",
+      "voiceAliases": [
+        "main rings south south",
+        "main jewelry south south",
+        "main south south"
+      ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
       "y": 0.4272,
@@ -107,6 +112,11 @@
       "id": "main-floor-loot-02",
       "mapId": "main-floor",
       "name": "Main rings and bracelets south mid",
+      "voiceAliases": [
+        "main rings south mid",
+        "main jewelry south mid",
+        "main south mid"
+      ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
       "y": 0.4608,
@@ -116,6 +126,11 @@
       "id": "main-floor-loot-03",
       "mapId": "main-floor",
       "name": "Main rings and bracelets north east",
+      "voiceAliases": [
+        "main rings north east",
+        "main jewelry north east",
+        "main north east"
+      ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
       "y": 0.7416,
@@ -125,6 +140,11 @@
       "id": "main-floor-loot-04",
       "mapId": "main-floor",
       "name": "Main rings and bracelets north west",
+      "voiceAliases": [
+        "main rings north west",
+        "main jewelry north west",
+        "main north west"
+      ],
       "type": "CoquardJewelry",
       "x": 0.7365967681322811,
       "y": 0.8928,
@@ -161,6 +181,12 @@
       "id": "main-floor-loot-08",
       "mapId": "main-floor",
       "name": "Painting The Chief",
+      "voiceAliases": [
+        "painting chief",
+        "chief",
+        "the chief",
+        "the chief painting"
+      ],
       "type": "Painting",
       "x": 0.6269808342728298,
       "y": 0.476,
@@ -190,7 +216,8 @@
       "name": "Main rings and bracelets south",
       "voiceAliases": [
         "south rings",
-        "south jewelry"
+        "south jewelry",
+        "main south"
       ],
       "type": "CoquardJewelry",
       "x": 0.37648863968090784,
@@ -211,7 +238,9 @@
       "mapId": "upper-floor",
       "name": "Upper painting cook",
       "voiceAliases": [
-        "upper cook painting"
+        "upper cook painting",
+        "upper painting cooked",
+        "upper cooked painting"
       ],
       "type": "Painting",
       "x": 0.2699150695227358,
@@ -222,6 +251,11 @@
       "id": "upper-floor-loot-02",
       "mapId": "upper-floor",
       "name": "Upper painting shotgun",
+      "voiceAliases": [
+        "upper shotgun painting",
+        "upper painting shotgun",
+        "upper shotgun"
+      ],
       "type": "Painting",
       "x": 0.2742562946260804,
       "y": 0.6952,

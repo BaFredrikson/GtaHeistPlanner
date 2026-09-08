@@ -51,13 +51,6 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
         Owner.CreateLootCommand.Execute(point);
     }
 
-    [RelayCommand]
-    private void MoveLoot(LootMarkerMove move)
-    {
-        Owner.SelectedMap = Map;
-        Owner.MoveLootCommand.Execute(move);
-    }
-
     [RelayCommand] private void SelectLoot(string id) => Owner.SelectLootCommand.Execute(id);
 
     [RelayCommand]

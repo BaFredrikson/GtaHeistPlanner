@@ -183,7 +183,7 @@
     {
       "id": "main-floor-camera-01",
       "mapId": "main-floor",
-      "name": "main-floor-camera-01",
+      "name": "Backstage Camera",
       "x": 0.3730498743795873,
       "y": 0.2910640187507128,
       "rotationDegrees": 35,
@@ -193,7 +193,7 @@
     {
       "id": "main-floor-camera-02",
       "mapId": "main-floor",
-      "name": "main-floor-camera-02",
+      "name": "Security office camera",
       "x": 0.43462123983912326,
       "y": 0.13038884462231268,
       "rotationDegrees": 125,
@@ -203,7 +203,7 @@
     {
       "id": "main-floor-camera-03",
       "mapId": "main-floor",
-      "name": "main-floor-camera-03",
+      "name": "Showroom Camera",
       "x": 0.37779678029912783,
       "y": 0.5221932114882507,
       "rotationDegrees": 0,
@@ -213,7 +213,7 @@
     {
       "id": "lower-floor-camera-01",
       "mapId": "lower-floor",
-      "name": "lower-floor-camera-01",
+      "name": "Downstairs Camera",
       "x": 0.449436809041031,
       "y": 0.8376134039666397,
       "rotationDegrees": 90,
@@ -223,7 +223,7 @@
     {
       "id": "upper-floor-camera-01",
       "mapId": "upper-floor",
-      "name": "upper-floor-camera-01",
+      "name": "Overview camera",
       "x": 0.9232836160653399,
       "y": 0.27154046997389036,
       "rotationDegrees": 140,
@@ -233,7 +233,7 @@
     {
       "id": "basement-camera-01",
       "mapId": "basement",
-      "name": "basement-camera-01",
+      "name": "Loading bay camera",
       "x": 0.39817992776018635,
       "y": 0.5346747336751363,
       "rotationDegrees": 155,
@@ -243,7 +243,7 @@
     {
       "id": "basement-camera-02",
       "mapId": "basement",
-      "name": "basement-camera-02",
+      "name": "Vault door camera",
       "x": 0.254246258250092,
       "y": 0.38965390362376634,
       "rotationDegrees": 90,
@@ -253,7 +253,7 @@
     {
       "id": "basement-camera-03",
       "mapId": "basement",
-      "name": "basement-camera-03",
+      "name": "Vault hallway camera",
       "x": 0.1881463309050231,
       "y": 0.45646594499378595,
       "rotationDegrees": -20,
@@ -529,7 +529,7 @@
     {
       "id": "main-floor-guard-01",
       "mapId": "main-floor",
-      "name": "main-floor-guard-01",
+      "name": "Tiger guard",
       "x": 0.8666096591026166,
       "y": 0.31070496083550914,
       "patrolIds": []
@@ -537,7 +537,7 @@
     {
       "id": "main-floor-guard-02",
       "mapId": "main-floor",
-      "name": "main-floor-guard-02",
+      "name": "Railing guard",
       "x": 0.46280771574321283,
       "y": 0.8642297650130548,
       "patrolIds": []
@@ -545,7 +545,7 @@
     {
       "id": "main-floor-guard-03",
       "mapId": "main-floor",
-      "name": "main-floor-guard-03",
+      "name": "Stairs up guard",
       "x": 0.25028037713300033,
       "y": 0.5091383812010444,
       "patrolIds": []
@@ -553,7 +553,7 @@
     {
       "id": "upper-floor-guard-01",
       "mapId": "upper-floor",
-      "name": "upper-floor-guard-01",
+      "name": "Rail guard",
       "x": 0.7851408459687018,
       "y": 0.6318537859007833,
       "patrolIds": []
@@ -561,7 +561,7 @@
     {
       "id": "upper-floor-guard-02",
       "mapId": "upper-floor",
-      "name": "upper-floor-guard-02",
+      "name": "Window guard",
       "x": 0.37071253567878737,
       "y": 0.7127937336814621,
       "patrolIds": []
@@ -569,7 +569,7 @@
     {
       "id": "upper-floor-guard-03",
       "mapId": "upper-floor",
-      "name": "upper-floor-guard-03",
+      "name": "Soda guard 1",
       "x": 0.33174919026691513,
       "y": 0.4725848563968668,
       "patrolIds": []
@@ -577,7 +577,7 @@
     {
       "id": "upper-floor-guard-04",
       "mapId": "upper-floor",
-      "name": "upper-floor-guard-04",
+      "name": "Soda guard 2",
       "x": 0.27507523330419176,
       "y": 0.4804177545691906,
       "patrolIds": []
@@ -585,7 +585,7 @@
     {
       "id": "lower-floor-guard-01",
       "mapId": "lower-floor",
-      "name": "lower-floor-guard-01",
+      "name": "Front desk guard",
       "x": 0.22047089076495083,
       "y": 0.539341041859379,
       "patrolIds": []
@@ -593,7 +593,7 @@
     {
       "id": "basement-guard-01",
       "mapId": "basement",
-      "name": "basement-guard-01",
+      "name": "Passive loading bay guard",
       "x": 0.34355173644464276,
       "y": 0.6710182767624021,
       "patrolIds": []
@@ -601,7 +601,7 @@
     {
       "id": "basement-guard-02",
       "mapId": "basement",
-      "name": "basement-guard-02",
+      "name": "Active loading bay guard",
       "x": 0.42374129866899674,
       "y": 0.4699738903394256,
       "patrolIds": []
@@ -609,7 +609,7 @@
     {
       "id": "basement-guard-03",
       "mapId": "basement",
-      "name": "basement-guard-03",
+      "name": "Vault console guard",
       "x": 0.2649345185776291,
       "y": 0.40992167101827676,
       "patrolIds": []
@@ -617,47 +617,55 @@
     {
       "id": "basement-guard-04",
       "mapId": "basement",
-      "name": "basement-guard-04",
-      "x": 0.193714531306374,
-      "y": 0.5280502750330928,
+      "name": "Camera guard",
+      "x": 0.2649345185776291,
+      "y": 0.34879118189299535,
       "patrolIds": []
     },
     {
       "id": "basement-guard-05",
       "mapId": "basement",
-      "name": "basement-guard-05",
-      "x": 0.20413245463793378,
-      "y": 0.521488378112823,
+      "name": "Hallway guard 1",
+      "x": 0.193714531306374,
+      "y": 0.5280502750330928,
       "patrolIds": []
     },
     {
       "id": "basement-guard-06",
       "mapId": "basement",
-      "name": "basement-guard-06",
-      "x": 0.31980732749180446,
-      "y": 0.34879118189299535,
+      "name": "Hallway guard 2",
+      "x": 0.20413245463793378,
+      "y": 0.521488378112823,
       "patrolIds": []
     },
     {
       "id": "basement-guard-07",
       "mapId": "basement",
-      "name": "basement-guard-07",
-      "x": 0.1941790224973168,
-      "y": 0.2924281984334204,
+      "name": "Sleepy guard",
+      "x": 0.31980732749180446,
+      "y": 0.34879118189299535,
       "patrolIds": []
     },
     {
       "id": "basement-guard-08",
       "mapId": "basement",
-      "name": "basement-guard-08",
-      "x": 0.19575136685465708,
-      "y": 0.1566579634464752,
+      "name": "Exit guard",
+      "x": 0.1941790224973168,
+      "y": 0.2924281984334204,
       "patrolIds": []
     },
     {
       "id": "basement-guard-09",
       "mapId": "basement",
-      "name": "basement-guard-09",
+      "name": "Elevator guard",
+      "x": 0.19575136685465708,
+      "y": 0.1566579634464752,
+      "patrolIds": []
+    },
+    {
+      "id": "basement-guard-10",
+      "mapId": "basement",
+      "name": "Nervous guard",
       "x": 0.27908561779369156,
       "y": 0.2898172323759791,
       "patrolIds": []

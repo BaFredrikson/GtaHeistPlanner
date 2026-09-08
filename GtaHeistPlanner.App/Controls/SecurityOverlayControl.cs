@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using System.Globalization;
 using System.Windows.Input;
 using GtaHeistPlanner.App.Models;
 using GtaHeistPlanner.App.ViewModels;
@@ -47,7 +48,8 @@ public sealed class SecurityOverlayControl : Control
     private static readonly Pen SelectedLootPen = new(new SolidColorBrush(Color.Parse("#F3C969")), 2);
     private static readonly Pen BuyersRequestPen = new(new SolidColorBrush(Color.Parse("#FF5BA8")), 2.5);
     private static readonly Pen LootedPen = new(new SolidColorBrush(Color.Parse("#E8EDF3")), 2.5);
-    private string? _draggedLootId;
+    private static readonly IBrush LootLabelBackground = new SolidColorBrush(Color.Parse("#B810141A"));
+    private static readonly IBrush LootLabelForeground = new SolidColorBrush(Color.Parse("#F2F5F8"));
 
     public static readonly StyledProperty<SecurityAnalysis?> AnalysisProperty =
         AvaloniaProperty.Register<SecurityOverlayControl, SecurityAnalysis?>(nameof(Analysis));
@@ -90,8 +92,6 @@ public sealed class SecurityOverlayControl : Control
         AvaloniaProperty.Register<SecurityOverlayControl, int>(nameof(LootRevision));
     public static readonly StyledProperty<ICommand?> CreateLootCommandProperty =
         AvaloniaProperty.Register<SecurityOverlayControl, ICommand?>(nameof(CreateLootCommand));
-    public static readonly StyledProperty<ICommand?> MoveLootCommandProperty =
-        AvaloniaProperty.Register<SecurityOverlayControl, ICommand?>(nameof(MoveLootCommand));
     public static readonly StyledProperty<ICommand?> SelectLootCommandProperty =
         AvaloniaProperty.Register<SecurityOverlayControl, ICommand?>(nameof(SelectLootCommand));
 
@@ -155,7 +155,6 @@ public sealed class SecurityOverlayControl : Control
     public LootMarkerViewModel? SelectedLoot { get => GetValue(SelectedLootProperty); set => SetValue(SelectedLootProperty, value); }
     public int LootRevision { get => GetValue(LootRevisionProperty); set => SetValue(LootRevisionProperty, value); }
     public ICommand? CreateLootCommand { get => GetValue(CreateLootCommandProperty); set => SetValue(CreateLootCommandProperty, value); }
-    public ICommand? MoveLootCommand { get => GetValue(MoveLootCommandProperty); set => SetValue(MoveLootCommandProperty, value); }
     public ICommand? SelectLootCommand { get => GetValue(SelectLootCommandProperty); set => SetValue(SelectLootCommandProperty, value); }
 
     public override void Render(DrawingContext context)
@@ -237,11 +236,6 @@ public sealed class SecurityOverlayControl : Control
         if (marker is not null)
         {
             SelectLootCommand?.Execute(marker.Id);
-            if (IsLootEditMode)
-            {
-                _draggedLootId = marker.Id;
-                e.Pointer.Capture(this);
-            }
             e.Handled = true;
             return;
         }
@@ -253,13 +247,6 @@ public sealed class SecurityOverlayControl : Control
         }
     }
 
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    {
-        base.OnPointerReleased(e);
-        _draggedLootId = null;
-        e.Pointer.Capture(null);
-    }
-
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
@@ -267,12 +254,6 @@ public sealed class SecurityOverlayControl : Control
             return;
 
         var pointer = e.GetPosition(this);
-        if (_draggedLootId is not null && IsLootEditMode && TryToNormalized(pointer, out var draggedPosition))
-        {
-            MoveLootCommand?.Execute(new LootMarkerMove(_draggedLootId, draggedPosition.X, draggedPosition.Y));
-            return;
-        }
-
         var loot = FindLootMarker(pointer);
         if (loot is not null)
         {
@@ -406,6 +387,7 @@ public sealed class SecurityOverlayControl : Control
                 ? TruckCargoIcon
                 : marker.IsBuyersRequest ? SpecialLootIcon : LootIcon;
             renderer.Draw(context, center, opacity: opacity, visualScale: markerScale);
+            DrawLootLabel(context, marker.LabelText, center, markerScale, opacity);
             if (marker.Type == LootType.LoadingBayCargo && marker.IsBuyersRequest)
                 context.DrawEllipse(null, MarkerPen(BuyersRequestPen), center, 14 * markerScale, 14 * markerScale);
             if (marker == SelectedLoot)
@@ -415,6 +397,24 @@ public sealed class SecurityOverlayControl : Control
                 context.DrawLine(MarkerPen(LootedPen), center + new Vector(-8, -8) * markerScale, center + new Vector(8, 8) * markerScale);
                 context.DrawLine(MarkerPen(LootedPen), center + new Vector(8, -8) * markerScale, center + new Vector(-8, 8) * markerScale);
             }
+        }
+    }
+
+    private static void DrawLootLabel(DrawingContext context, string text, Point markerCenter, double visualScale, double opacity)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+        var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold), 10 * visualScale, LootLabelForeground);
+        var paddingX = 3 * visualScale;
+        var paddingY = 1.5 * visualScale;
+        var top = markerCenter.Y + 11 * visualScale;
+        var background = new Rect(markerCenter.X - formatted.Width / 2 - paddingX, top,
+            formatted.Width + paddingX * 2, formatted.Height + paddingY * 2);
+        using (context.PushOpacity(opacity))
+        {
+            context.DrawRectangle(LootLabelBackground, null, background, 3 * visualScale, 3 * visualScale);
+            context.DrawText(formatted, new Point(markerCenter.X - formatted.Width / 2, top + paddingY));
         }
     }
 

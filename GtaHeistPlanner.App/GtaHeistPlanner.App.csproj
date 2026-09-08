@@ -14,6 +14,8 @@
                       Link="Assets\maps\kortz\%(Filename)%(Extension)" />
     <AvaloniaResource Include="..\assets\icons\camera.png"
                       Link="Assets\icons\camera.png" />
+    <AvaloniaResource Include="..\assets\icons\mic.PNG"
+                      Link="Assets\icons\mic.PNG" />
     <AvaloniaResource Include="..\assets\icons\security.svg"
                       Link="Assets\icons\security.svg" />
     <AvaloniaResource Include="..\assets\icons\loot.png"

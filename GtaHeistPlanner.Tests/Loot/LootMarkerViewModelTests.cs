@@ -18,4 +18,14 @@ public sealed class LootMarkerViewModelTests
         Assert.True(state.IsPresent);
         Assert.Equal(118000, state.ScopedValue);
     }
+
+    [Fact]
+    public void LabelUsesPlayerFacingNameRatherThanInternalId()
+    {
+        var definition = new LootSpawnDefinition("loot-main-07", "main-floor", "West Painting", LootType.Painting, .2, .3);
+        var marker = new LootMarkerViewModel(definition, new LootSpawnState { SpawnId = definition.Id });
+
+        Assert.Equal("West Painting", marker.LabelText);
+        Assert.DoesNotContain(marker.Id, marker.LabelText, StringComparison.Ordinal);
+    }
 }

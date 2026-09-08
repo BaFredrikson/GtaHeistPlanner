@@ -40,4 +40,21 @@ public sealed class HeistSessionStateTests
         session.Reset();
         Assert.Null(session.VaultCode);
     }
+
+    [Fact]
+    public void CameraCounterRejectsThirdCameraAndResetClearsRunState()
+    {
+        var session = new HeistSessionState { PlayerCount = 4, GuardsDown = 3, VaultCode = "46-18-73" };
+        Assert.True(session.TryIncrementCamerasDown(out _));
+        Assert.True(session.TryIncrementCamerasDown(out _));
+        Assert.False(session.TryIncrementCamerasDown(out var error));
+        Assert.Equal(2, session.CamerasDown);
+        Assert.Contains("stealth", error, StringComparison.OrdinalIgnoreCase);
+
+        session.Reset();
+        Assert.Equal(1, session.PlayerCount);
+        Assert.Equal(PlannerStage.Preparation, session.CurrentStage);
+        Assert.Equal(0, session.GuardsDown);
+        Assert.Equal(0, session.CamerasDown);
+    }
 }
