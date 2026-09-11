@@ -32,4 +32,6 @@ public sealed class SecurityRuntimeSaveState
     public IReadOnlyList<string> ActiveCameraIds { get; init; } = [];
     public IReadOnlyList<string> ActiveGuardIds { get; init; } = [];
     public IReadOnlyList<string> ActivePatrolIds { get; init; } = [];
+    public Dictionary<string, GtaHeistPlanner.Core.Security.CameraDisableMethod> DisabledCameras { get; init; } = new(StringComparer.Ordinal);
+    public int? CountedCameraTakedowns { get; init; }
 }

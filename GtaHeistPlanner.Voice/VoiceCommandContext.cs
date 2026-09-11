@@ -16,6 +16,8 @@ public sealed class VoiceCommandContext
     public bool AwaitingSewerRoute { get; set; }
     public bool AwaitingVaultCode { get; set; }
     public string? LastReversibleAction { get; set; }
+    public string? NumericContinuationTargetId { get; set; }
+    public int? NumericContinuationBaseValue { get; set; }
 
     public PendingVoiceMode PendingMode => AwaitingSewerRoute ? PendingVoiceMode.SewerRoute
         : AwaitingVaultCode ? PendingVoiceMode.VaultCode
@@ -30,5 +32,12 @@ public sealed class VoiceCommandContext
         AwaitingSewerRoute = false;
         AwaitingVaultCode = false;
         LastReversibleAction = null;
+        ClearNumericContinuation();
+    }
+
+    public void ClearNumericContinuation()
+    {
+        NumericContinuationTargetId = null;
+        NumericContinuationBaseValue = null;
     }
 }

@@ -13,7 +13,7 @@
 
   <Grid RowDefinitions="58,48,*">
     <Border Background="#181E26" BorderBrush="#303946" BorderThickness="0,0,0,1" Padding="18,8">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="14">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
         <StackPanel VerticalAlignment="Center">
           <TextBlock Text="GTA HEIST PLANNER" FontSize="17" FontWeight="Bold" Foreground="#F3C969" />
           <TextBlock Text="Kortz Center" FontSize="10" Foreground="#98A4B3" />
@@ -39,7 +39,13 @@
                  Stretch="Uniform"
                  Source="avares://GtaHeistPlanner.App/Assets/icons/mic.PNG" />
         </Button>
-        <Button Grid.Column="4" Width="38" Height="38" Padding="0"
+        <Button Grid.Column="4" Width="28" Height="28" Padding="0" CornerRadius="4"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                ToolTip.Tip="Voice command guide" Command="{Binding OpenVoiceGuideCommand}">
+          <TextBlock Text="?" FontSize="15" FontWeight="Bold"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0" />
+        </Button>
+        <Button Grid.Column="5" Width="38" Height="38" Padding="0"
                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                 ToolTip.Tip="Settings" Command="{Binding OpenSettingsCommand}">
           <Viewbox Width="18" Height="14">
@@ -82,8 +88,10 @@
           </StackPanel></Border>
           <Border Grid.Column="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel Spacing="4">
             <TextBlock Text="ENTRY RECOMMENDATION" FontWeight="Bold" Foreground="#75CFF4" />
-            <TextBlock Text="{Binding PlanningAnalysis.EntryRecommendation.Entry, StringFormat='Recommended: {0}'}" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="{Binding PlanningAnalysis.EntryRecommendation.DisplayEntry, StringFormat='Recommended Entry: {0}'}" FontSize="18" FontWeight="Bold" />
             <ItemsControl ItemsSource="{Binding PlanningAnalysis.EntryRecommendation.Reasons}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat='• {0}'}" FontSize="10" TextWrapping="Wrap" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            <TextBlock Text="Required areas" FontSize="10" FontWeight="SemiBold" Foreground="#98A4B3" Margin="0,5,0,0" />
+            <ItemsControl ItemsSource="{Binding PlanningAnalysis.EntryRecommendation.RequiredAreas}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat='• {0}'}" FontSize="10" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
           </StackPanel></Border>
         </Grid>
         <Border Padding="14" Background="#11151B" CornerRadius="6"><StackPanel Spacing="6">
@@ -106,6 +114,8 @@
             <TextBlock Text="PREP RECOMMENDATIONS" FontWeight="Bold" Foreground="#75CFF4" />
             <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.Recommendation, StringFormat='Glass Cutter: {0}'}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.Reason}" FontSize="10" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.TargetCount, StringFormat='{}{0} selected target(s)'}" FontSize="10" Foreground="#98A4B3" />
+            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.BagPercent, StringFormat='{}{0}% selected bag usage'}" FontSize="10" Foreground="#98A4B3" />
             <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.Recommendation, StringFormat='Power Drills: {0}'}" FontWeight="SemiBold" Margin="0,4,0,0" />
             <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.Reason}" FontSize="10" TextWrapping="Wrap" />
             <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.TargetCount, StringFormat='{}{0} box target(s) in drills scenario'}" FontSize="10" Foreground="#98A4B3" />
@@ -120,13 +130,17 @@
       </StackPanel></ScrollViewer>
     </Border>
 
-    <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="18" IsVisible="{Binding IsMapStage}">
-        <StackPanel Orientation="Horizontal" Margin="4,0,0,12" Spacing="10">
+    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" Margin="18" IsVisible="{Binding IsMapStage}">
+        <StackPanel Orientation="Horizontal" Margin="4,0,0,6" Spacing="10">
           <TextBlock Text="{Binding StageTitle}" FontSize="21" FontWeight="Bold" Foreground="#F3C969" />
           <TextBlock VerticalAlignment="Center" Text="{Binding StageDescription}" FontSize="11" Foreground="#98A4B3" />
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+        <Border Grid.Row="1" Margin="4,0,4,8" Padding="9,4" Background="#181E26" CornerRadius="5">
+          <TextBlock Text="{Binding VoiceHint}" FontSize="11" Foreground="#98A4B3" TextTrimming="CharacterEllipsis" />
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="14">
           <ItemsControl ItemsSource="{Binding VisibleMapCards}" IsVisible="{Binding !HasFocusedMap}"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -186,7 +200,7 @@
                   <StackPanel Spacing="3">
                     <TextBlock Text="INFILTRATION STATUS" FontWeight="Bold" Foreground="#F3C969" />
                     <TextBlock Text="{Binding GuardsDownDisplay}" />
-                    <TextBlock Text="{Binding CamerasDownDisplay}" />
+                    <TextBlock Text="{Binding CamerasDownDisplay}" Foreground="{Binding CameraStatusColor}" />
                   </StackPanel>
                 </Border>
 
@@ -195,7 +209,7 @@
                     <StackPanel Spacing="3">
                       <TextBlock Text="HEIST STATUS" FontWeight="Bold" Foreground="#F3C969" />
                       <TextBlock Text="{Binding GuardsDownDisplay}" />
-                      <TextBlock Text="{Binding CamerasDownDisplay}" />
+                      <TextBlock Text="{Binding CamerasDownDisplay}" Foreground="{Binding CameraStatusColor}" />
                       <TextBlock Text="{Binding ActivityLootSummary}" FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
                     </StackPanel>
                   </Border>
@@ -228,7 +242,7 @@
                     <TextBlock Text="{Binding CurrentStage, StringFormat='Stage: {0}'}" FontSize="10" />
                     <TextBlock Text="{Binding VoiceContextSummary, StringFormat='Context: {0}'}" FontSize="10" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding GuardsDownDisplay}" FontSize="10" />
-                    <TextBlock Text="{Binding CamerasDownDisplay}" FontSize="10" />
+                    <TextBlock Text="{Binding CamerasDownDisplay}" FontSize="10" Foreground="{Binding CameraStatusColor}" />
                     <TextBlock Text="{Binding CurrentPartialTranscript, StringFormat='Partial: {0}', TargetNullValue='Partial: —'}" FontSize="10" Foreground="#E8A65A" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding LastRecognizedText, StringFormat='Heard: {0}', TargetNullValue='Heard: —'}" FontSize="10" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding LastParsedVoiceCommand, StringFormat='Parsed: {0}', TargetNullValue='Parsed: —'}" FontSize="10" TextWrapping="Wrap" />
@@ -343,6 +357,39 @@
       </Grid>
     </Border>
 
+    <Border Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,118,0,0"
+            ZIndex="90" Padding="16,9" CornerRadius="7" Background="#F21C232D"
+            BorderBrush="{Binding CurrentVoiceFeedback.Color}" BorderThickness="1"
+            IsVisible="{Binding HasVoiceFeedback}">
+      <TextBlock Text="{Binding CurrentVoiceFeedback.Message}" Foreground="{Binding CurrentVoiceFeedback.Color}"
+                 FontSize="15" FontWeight="SemiBold" />
+    </Border>
+
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsVoiceGuideOpen}" ZIndex="105">
+      <Border Width="560" MaxHeight="650" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+              Background="#1C232D" BorderBrush="#465364" BorderThickness="1" CornerRadius="10">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+          <StackPanel>
+            <TextBlock Text="VOICE COMMANDS" FontSize="20" FontWeight="Bold" Foreground="#F3C969" />
+            <TextBlock Text="{Binding StageTitle, StringFormat='Commands for {0}'}" Foreground="#98A4B3" />
+          </StackPanel>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding CurrentVoiceGuideGroups}">
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:VoiceGuideGroup">
+                <StackPanel Margin="0,4,0,10" Spacing="3">
+                  <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#75CFF4" />
+                  <ItemsControl ItemsSource="{Binding Phrases}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <TextBlock Text="{Binding StringFormat='“{0}”'}" Margin="8,1" />
+                  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                </StackPanel>
+              </DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <Button Grid.Row="2" HorizontalAlignment="Right" Width="90" Content="Close" Command="{Binding CloseVoiceGuideCommand}" />
+        </Grid>
+      </Border>
+    </Border>
+
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsSettingsOpen}" ZIndex="100">
       <Border Width="480" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"
               Background="#1C232D" BorderBrush="#465364" BorderThickness="1" CornerRadius="10">
@@ -370,7 +417,7 @@
               Background="#1C232D" BorderBrush="#465364" BorderThickness="1" CornerRadius="10">
         <StackPanel Spacing="12">
           <TextBlock Text="Start a new heist attempt?" FontSize="20" FontWeight="Bold" Foreground="#F3C969" />
-          <TextBlock Text="Preparation and planning data will be kept. Infiltration and activity progress will be reset."
+          <TextBlock Text="Preparation and planning data will be kept. Infiltration and heist progress will be reset."
                      TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
             <Button Content="Cancel" Command="{Binding CancelNewHeistCommand}" />

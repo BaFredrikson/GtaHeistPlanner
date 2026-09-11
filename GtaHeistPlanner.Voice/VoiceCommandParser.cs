@@ -1,6 +1,7 @@
 using GtaHeistPlanner.Core.Loot;
 using GtaHeistPlanner.Core.Maps;
 using GtaHeistPlanner.Core.Planning;
+using GtaHeistPlanner.Core.Security;
 
 namespace GtaHeistPlanner.Voice;
 
@@ -8,12 +9,16 @@ public sealed class VoiceCommandParser
 {
     private readonly IReadOnlyList<AliasEntry> _lootAliases;
     private readonly IReadOnlyList<AliasEntry> _mapAliases;
+    private readonly IReadOnlyList<AliasEntry> _cameraAliases;
 
-    public VoiceCommandParser(IEnumerable<LootSpawnDefinition> lootDefinitions, IEnumerable<MapDefinition>? maps = null)
+    public VoiceCommandParser(IEnumerable<LootSpawnDefinition> lootDefinitions, IEnumerable<MapDefinition>? maps = null,
+        IEnumerable<SecurityCameraDefinition>? cameras = null)
     {
         _lootAliases = BuildAliases(lootDefinitions.SelectMany(definition =>
             definition.VoiceAliases.Append(definition.Name).Select(alias => (alias, definition.Id))));
         _mapAliases = BuildAliases((maps ?? []).SelectMany(map => MapAliases(map).Select(alias => (alias, map.Id))));
+        _cameraAliases = BuildAliases((cameras ?? []).SelectMany(camera =>
+            new[] { $"{camera.Name} down", $"{camera.Name} disabled" }.Select(alias => (alias, camera.Id))));
     }
 
     public VoiceCommandParseResult Parse(string recognizedText, ScopeOutSessionState state)
@@ -35,12 +40,15 @@ public sealed class VoiceCommandParser
             return Parsed(new ChangeStageVoiceCommand(PlannerStage.Planning));
         if (text is "heist start" or "start heist" or "start infiltration" or "infiltration start")
             return Parsed(new ChangeStageVoiceCommand(PlannerStage.HeistInfiltration));
-        if (text is "going down skylight" or "using access codes" or "alpha mail arriving")
-            return Parsed(new ChangeStageVoiceCommand(PlannerStage.HeistActivity));
+        if (text == "going down skylight") return Parsed(new ChangeStageVoiceCommand(PlannerStage.HeistActivity, true));
+        if (text is "using access codes" or "alpha mail arriving") return Parsed(new ChangeStageVoiceCommand(PlannerStage.HeistActivity));
         if (text == "outta the sewers") return Parsed(new ExitSewerRouteVoiceCommand());
         if (text == "sewer grate reached") return Parsed(new EnterSewerRouteVoiceCommand());
-        if (text is "tango down" or "dropped guard" or "dropped a guard") return Parsed(new IncrementGuardsDownVoiceCommand());
-        if (text is "camera down" or "charlie down") return Parsed(new IncrementCamerasDownVoiceCommand());
+        if (VoiceCommandCatalog.GuardDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementGuardsDownVoiceCommand());
+        if (VoiceCommandCatalog.CameraDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementCamerasDownVoiceCommand());
+        if (VoiceCommandCatalog.ShowroomButton.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new DisableShowroomByButtonVoiceCommand());
+        var namedCamera = ResolveExactAlias(text, _cameraAliases, id => new DisableNamedCameraVoiceCommand(id), "camera");
+        if (namedCamera.Disposition != VoiceParseDisposition.Rejected || _cameraAliases.Any(alias => alias.Alias == text)) return namedCamera;
         if (text is "special loot" or "buyers request" or "buyer s request") return Parsed(new ToggleSpecialLootCommand());
 
         if (text.StartsWith("pull up ", StringComparison.Ordinal))
@@ -55,8 +63,11 @@ public sealed class VoiceCommandParser
         if (context.AwaitingVaultCode)
             return TryParseVaultCode(text, out var pendingCode) ? Parsed(new SetVaultCodeVoiceCommand(pendingCode)) : Rejected("The pending vault code was not understood.");
         if (context.AwaitingSewerRoute) return NormalizeSewerRoute(recognizedText);
-        if (context.ScopeOutActive && context.PendingLootValueTargetId is not null && SpokenCurrencyParser.TryParse(text, out var continuationValue))
-            return Parsed(new SetPendingLootValueCommand(continuationValue));
+        if (context.ScopeOutActive && context.PendingLootValueTargetId is not null && SpokenCurrencyParser.TryParseDetailed(text, out var pendingValue))
+            return Parsed(new SetPendingLootValueCommand(pendingValue.Value, pendingValue));
+        if (context.ScopeOutActive && context.NumericContinuationTargetId is { } continuationTarget &&
+            SpokenCurrencyParser.TryParseDetailed(text, out var remainder) && !remainder.UsedThousandsUnit && remainder.Value is >= 1 and <= 999)
+            return Parsed(new ContinueLootValueCommand(continuationTarget, remainder.Value));
 
         if (stage is not (PlannerStage.Preparation or PlannerStage.HeistActivity) ||
             (stage == PlannerStage.Preparation && !context.ScopeOutActive)) return Ignored();
@@ -67,15 +78,15 @@ public sealed class VoiceCommandParser
     {
         var matching = _lootAliases.Where(entry => text == entry.Alias || text.StartsWith(entry.Alias + " ", StringComparison.Ordinal))
             .Select(entry => (entry, remainder: text.Length == entry.Alias.Length ? "" : text[(entry.Alias.Length + 1)..])).ToArray();
-        var candidates = matching.Where(item => item.remainder.Length == 0 || SpokenCurrencyParser.TryParse(item.remainder, out _)).ToArray();
+        var candidates = matching.Where(item => item.remainder.Length == 0 || SpokenCurrencyParser.TryParseDetailed(item.remainder, out _)).ToArray();
         if (candidates.Length == 0) return Rejected(matching.Length > 0 ? "The loot location was recognized, but its spoken value was not understood." : "No loot alias could be resolved.");
         var longest = candidates.Max(item => item.entry.Alias.Length);
         var best = candidates.Where(item => item.entry.Alias.Length == longest).ToArray();
         var ids = best.Select(item => item.entry.TargetId).Distinct(StringComparer.Ordinal).ToArray();
         if (ids.Length != 1) return Rejected($"Loot alias is ambiguous: {string.Join(", ", ids)}.");
-        int? value = null;
-        if (best[0].remainder.Length > 0 && SpokenCurrencyParser.TryParse(best[0].remainder, out var parsed)) value = parsed;
-        return Parsed(new RecordScopedLootCommand(ids[0], value));
+        SpokenNumberResult? value = null;
+        if (best[0].remainder.Length > 0 && SpokenCurrencyParser.TryParseDetailed(best[0].remainder, out var parsed)) value = parsed;
+        return Parsed(new RecordScopedLootCommand(ids[0], value?.Value, value));
     }
 
     private static VoiceCommandParseResult ResolveExactAlias(string alias, IReadOnlyList<AliasEntry> aliases, Func<string, VoiceCommand> factory, string kind)

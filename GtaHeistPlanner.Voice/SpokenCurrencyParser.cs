@@ -1,5 +1,7 @@
 namespace GtaHeistPlanner.Voice;
 
+public sealed record SpokenNumberResult(int Value, bool UsedThousandsUnit, bool HasExplicitSubThousandComponent);
+
 public static class SpokenCurrencyParser
 {
     private static readonly IReadOnlyDictionary<string, int> SmallNumbers = new Dictionary<string, int>
@@ -15,29 +17,62 @@ public static class SpokenCurrencyParser
 
     public static bool TryParse(string text, out int value)
     {
+        if (TryParseDetailed(text, out var result))
+        {
+            value = result.Value;
+            return true;
+        }
+        value = 0;
+        return false;
+    }
+
+    public static bool TryParseDetailed(string text, out SpokenNumberResult result)
+    {
         var normalized = SpokenTextNormalizer.Normalize(text);
         var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Where(token => token != "and")
             .ToArray();
-        value = 0;
+        result = new(0, false, false);
         if (tokens.Length == 0)
             return false;
 
-        var multiplier = 1;
-        if (tokens[^1] is "thousand" or "k")
+        var thousandsIndex = Array.FindIndex(tokens, token => token is "thousand" or "k");
+        if (thousandsIndex >= 0)
         {
-            multiplier = 1000;
-            tokens = tokens[..^1];
+            if (thousandsIndex == 0 || Array.FindIndex(tokens, thousandsIndex + 1, token => token is "thousand" or "k") >= 0 ||
+                !TryParseUnderThousand(tokens[..thousandsIndex], out var thousands))
+                return false;
+            var remainderTokens = tokens[(thousandsIndex + 1)..];
+            var hasRemainder = remainderTokens.Length > 0;
+            var remainder = 0;
+            if (hasRemainder && !TryParseUnderThousand(remainderTokens, out remainder)) return false;
+            var total = (long)thousands * 1000 + remainder;
+            if (total is <= 0 or > int.MaxValue) return false;
+            result = new((int)total, true, hasRemainder);
+            return true;
         }
-        if (tokens.Length == 0)
-            return false;
 
+        if (!TryParseUnderThousand(tokens, out var value)) return false;
+        result = new(value, false, false);
+        return true;
+    }
+
+    private static bool TryParseUnderThousand(string[] tokens, out int value)
+    {
+        value = 0;
+        if (tokens.Length == 0) return false;
         if (tokens.All(token => token.All(char.IsDigit)) &&
             int.TryParse(string.Concat(tokens), out var groupedDigits))
-            return TryMultiply(groupedDigits, multiplier, out value);
+        {
+            value = groupedDigits;
+            return value > 0;
+        }
 
         if (tokens.Length == 1 && int.TryParse(tokens[0], out var digits))
-            return TryMultiply(digits, multiplier, out value);
+        {
+            value = digits;
+            return value > 0;
+        }
 
         var current = 0;
         foreach (var token in tokens)
@@ -49,13 +84,7 @@ public static class SpokenCurrencyParser
             else
                 return false;
         }
-        return current > 0 && TryMultiply(current, multiplier, out value);
-    }
-
-    private static bool TryMultiply(int number, int multiplier, out int value)
-    {
-        var result = (long)number * multiplier;
-        value = result is > 0 and <= int.MaxValue ? (int)result : 0;
+        value = current;
         return value > 0;
     }
 }

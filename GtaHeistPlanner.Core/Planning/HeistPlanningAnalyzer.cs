@@ -3,7 +3,7 @@ using GtaHeistPlanner.Core.Loot;
 namespace GtaHeistPlanner.Core.Planning;
 
 public enum PrepRecommendationLevel { Required, Recommended, Optional, NotRecommended, NotNeeded }
-public enum InfiltrationEntry { Skylight, AlphaMail, AccessCodes }
+public enum InfiltrationEntry { Skylight, AlphaMail, AccessCodes, Sewer }
 
 public sealed record PlanningLootCandidate(
     string LootId, string Name, string MapId, LootType Type, int BagPercent, bool IsAccessible,
@@ -30,7 +30,16 @@ public sealed record PrepRequirementSummary(
     string Name, PrepRecommendationLevel Recommendation, int TargetCount, int BagPercent,
     int KnownExactValue, int EstimatedMinValue, int EstimatedMaxValue, string Reason);
 
-public sealed record EntryRecommendation(InfiltrationEntry Entry, IReadOnlyList<string> Reasons);
+public sealed record EntryRecommendation(InfiltrationEntry Entry, EntryRecommendationReason Reason,
+    IReadOnlyList<string> Reasons, IReadOnlyList<string> RequiredAreas)
+{
+    public string DisplayEntry => Entry switch
+    {
+        InfiltrationEntry.AlphaMail => "Alpha Mail",
+        InfiltrationEntry.AccessCodes => "Access Codes",
+        _ => Entry.ToString(),
+    };
+}
 
 public sealed record PlanningAnalysis(
     int PlayerCount, int CrewCapacityPercent, int ScopedCount, int AccessibleScopedCount,
@@ -56,9 +65,12 @@ public static class HeistPlanningAnalyzer
         var haul = Optimize(accessible.Where(item => item.Type != LootType.SafetyDepositBoxes), capacity);
         var boxes = accessible.Where(item => item.Type == LootType.SafetyDepositBoxes).ToArray();
         var drillsHaul = Optimize(accessible, capacity);
-        var glass = PrepSummary("Glass Cutter", accessible.Where(item => item.RequiredPrep == OptionalPrep.GlassCutter).ToArray(),
-            items => items.Length == 0 ? PrepRecommendationLevel.NotNeeded : PrepRecommendationLevel.Required,
-            items => items.Length == 0 ? "No accessible scoped glass-case loot requires it." : $"Required to access {items.Length} scoped glass-case target(s).");
+        var selectedGlass = haul.SelectedLoot.Where(item => item.RequiredPrep == OptionalPrep.GlassCutter).ToArray();
+        var glass = PrepSummary("Glass Cutter", selectedGlass,
+            items => items.Length == 0 ? PrepRecommendationLevel.NotRecommended : PrepRecommendationLevel.Required,
+            items => items.Length == 0
+                ? "No loot in the recommended haul requires the Glass Cutter."
+                : $"The recommended haul includes {items.Length} glass-case target(s).");
         var drills = PrepSummary("Power Drills", boxes,
             items => items.Length == 0 ? PrepRecommendationLevel.NotNeeded
                 : haul.RemainingCapacityPercent >= 60 ? PrepRecommendationLevel.Recommended
@@ -68,13 +80,7 @@ public static class HeistPlanningAnalyzer
                 : haul.RemainingCapacityPercent >= 60 ? $"{haul.RemainingCapacityPercent}% spare capacity can hold at least two boxes."
                 : haul.RemainingCapacityPercent >= 30 ? $"{haul.RemainingCapacityPercent}% spare capacity can hold one box."
                 : "Projected bags are already full or lack the 30% required for a box.");
-        var cargoPresent = candidates.Any(item => item.Type == LootType.LoadingBayCargo);
-        var cargoSelected = haul.SelectedLoot.Any(item => item.Type == LootType.LoadingBayCargo);
-        var entry = cargoSelected
-            ? new EntryRecommendation(InfiltrationEntry.AlphaMail, ["Loading Bay Cargo is confirmed and included in the recommended haul.", "The cargo's 30% bag usage fits after higher-priority loot."])
-            : new EntryRecommendation(InfiltrationEntry.Skylight, cargoPresent
-                ? ["Loading Bay Cargo is present but excluded because higher-priority loot uses the available capacity.", "Skylight remains the preferred default entry."]
-                : ["Skylight is the preferred direct default entry.", "No Loading Bay Cargo is included in the recommended haul."]);
+        var entry = EntryRecommendationService.Recommend(haul);
         var categories = candidates.GroupBy(item => LootEconomicsCatalog.Get(item.Type,
                 definitionList.First(definition => definition.Id == item.LootId).ZoneId).DisplayName)
             .Select(group => new PlanningLootCategorySummary(group.Key, group.Count(), group.Count(x => x.IsAccessible),

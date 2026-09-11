@@ -12,15 +12,12 @@ public sealed class HeistSessionState
 
     public bool TryIncrementCamerasDown(out string? error)
     {
-        if (CamerasDown >= CameraDisableLimit)
-        {
-            error = $"Camera limit reached ({CameraDisableLimit}/{CameraDisableLimit}); disabling another camera would blow stealth.";
-            return false;
-        }
         CamerasDown++;
-        error = null;
+        error = CamerasDown > CameraDisableLimit ? "Stealth is broken; guards are alerted." : null;
         return true;
     }
+
+    public bool IsCameraStealthCompromised => CamerasDown > CameraDisableLimit;
 
     public void Reset()
     {

@@ -1,5 +1,6 @@
 using GtaHeistPlanner.App.ViewModels;
 using GtaHeistPlanner.App.Services;
+using GtaHeistPlanner.App.Models;
 using Avalonia;
 using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Voice;
@@ -8,6 +9,74 @@ namespace GtaHeistPlanner.Tests.Voice;
 
 public sealed class MainViewModelVoiceWorkflowTests
 {
+    [Theory]
+    [InlineData("118 thousand", "500", 118500)]
+    [InlineData("34 thousand", "five hundred", 34500)]
+    [InlineData("105 thousand", "seven hundred fifty", 105750)]
+    public void SplitNumericValueContinuesPreviousLootAssignment(string thousands, string remainder, int expected)
+    {
+        using var viewModel = CreateListeningViewModel();
+        var loot = viewModel.LootMarkers.Single(marker => marker.Id == "basement-loot-02");
+        viewModel.ProcessRecognizedText("scope out");
+        viewModel.ProcessRecognizedText("vault painting right right");
+        viewModel.ProcessRecognizedText(thousands);
+        viewModel.ProcessRecognizedText(remainder);
+
+        Assert.Equal(expected, loot.ScopedValue);
+        Assert.Contains("Numeric continuation", viewModel.VoiceStartupDiagnostics ?? string.Empty);
+        viewModel.ProcessRecognizedText("undo");
+        Assert.Null(loot.ScopedValue);
+        Assert.True(loot.IsPresent);
+    }
+
+    [Fact]
+    public void MapCommandInterruptsNumericContinuation()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var loot = viewModel.LootMarkers.Single(marker => marker.Id == "basement-loot-02");
+        viewModel.ProcessRecognizedText("scope out");
+        viewModel.ProcessRecognizedText("vault painting right right");
+        viewModel.ProcessRecognizedText("118 thousand");
+        viewModel.ProcessRecognizedText("pull up main floor");
+        viewModel.ProcessRecognizedText("500");
+        Assert.Equal(118000, loot.ScopedValue);
+    }
+
+    [Fact]
+    public void MentioningDifferentLootMovesPendingTargetWithoutChangingPreviousValue()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var west = viewModel.LootMarkers.Single(marker => marker.Id == "basement-loot-02");
+        var east = viewModel.LootMarkers.Single(marker => marker.Id == "basement-loot-03");
+        viewModel.ProcessRecognizedText("scope out");
+        viewModel.ProcessRecognizedText("vault painting right right");
+        viewModel.ProcessRecognizedText("118 thousand");
+        viewModel.ProcessRecognizedText("vault painting left left");
+        viewModel.ProcessRecognizedText("500");
+        Assert.Equal(118000, west.ScopedValue);
+        Assert.Equal(500, east.ScopedValue);
+    }
+
+    [Fact]
+    public void StageLabelGuideAndFeedbackReflectFieldUseOutcomes()
+    {
+        using var viewModel = CreateListeningViewModel();
+        Assert.Equal("Heist", viewModel.StageOptions.Single(option => option.Stage == PlannerStage.HeistActivity).Label);
+
+        viewModel.ProcessRecognizedText("start infiltration");
+        Assert.Equal(VoiceFeedbackKind.Success, viewModel.CurrentVoiceFeedback?.Kind);
+        Assert.Contains("Guard down", viewModel.CurrentVoiceGuideGroups.Single(group => group.Name == "Guards").Phrases, StringComparer.OrdinalIgnoreCase);
+
+        viewModel.ProcessRecognizedText("nonsense field phrase");
+        Assert.Equal(VoiceFeedbackKind.NotRecognized, viewModel.CurrentVoiceFeedback?.Kind);
+
+        viewModel.ProcessRecognizedText("camera down");
+        viewModel.ProcessRecognizedText("camera disabled");
+        viewModel.ProcessRecognizedText("disabled camera");
+        Assert.Equal(VoiceFeedbackKind.Success, viewModel.CurrentVoiceFeedback?.Kind);
+        Assert.Contains("stealth broken", viewModel.CurrentVoiceFeedback!.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void ValidAndInvalidPendingSewerRoutesPreserveExpectedState()
     {
@@ -85,10 +154,10 @@ public sealed class MainViewModelVoiceWorkflowTests
         viewModel.ProcessRecognizedText("camera down");
         viewModel.ProcessRecognizedText("camera down");
         Assert.Equal(1, viewModel.GuardsDown);
-        Assert.Equal(2, viewModel.CamerasDown);
-        Assert.Contains("limit", viewModel.VoiceCommandError, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(3, viewModel.CamerasDown);
+        Assert.True(viewModel.IsCameraStealthCompromised);
         viewModel.ProcessRecognizedText("undo");
-        Assert.Equal(1, viewModel.CamerasDown);
+        Assert.Equal(2, viewModel.CamerasDown);
 
         viewModel.PlayerCount = 3;
         viewModel.NewHeistCommand.Execute(null);
@@ -99,6 +168,72 @@ public sealed class MainViewModelVoiceWorkflowTests
         Assert.Equal("46-18-73", viewModel.VaultCode);
         Assert.Equal(0, viewModel.GuardsDown);
         Assert.Equal(0, viewModel.CamerasDown);
+    }
+
+    [Fact]
+    public void NamedAndShowroomCameraDisablesAreIdempotentAndCountCorrectly()
+    {
+        using var viewModel = CreateListeningViewModel();
+        Assert.Equal("#63E67A", viewModel.CameraStatusColor);
+        viewModel.ProcessRecognizedText("start infiltration");
+        viewModel.ProcessRecognizedText("shot the button");
+        Assert.False(viewModel.SecurityCameras.Single(camera => camera.Id == "main-floor-camera-03").IsActive);
+        Assert.Equal(1, viewModel.TotalDisabledCameras);
+        Assert.Equal(0, viewModel.CountedCameraTakedowns);
+
+        viewModel.ProcessRecognizedText("backstage camera down");
+        viewModel.ProcessRecognizedText("backstage camera down");
+        Assert.Equal(1, viewModel.CountedCameraTakedowns);
+        Assert.Equal(2, viewModel.TotalDisabledCameras);
+        Assert.Equal("#E8A65A", viewModel.CameraStatusColor);
+
+        viewModel.ProcessRecognizedText("security office camera disabled");
+        Assert.Equal(2, viewModel.CountedCameraTakedowns);
+        Assert.False(viewModel.IsCameraStealthCompromised);
+        viewModel.ProcessRecognizedText("downstairs camera down");
+        Assert.Equal(3, viewModel.CountedCameraTakedowns);
+        Assert.True(viewModel.IsCameraStealthCompromised);
+        Assert.Equal("#FF7777", viewModel.CameraStatusColor);
+    }
+
+    [Fact]
+    public void SaveLoadPreservesCameraDisableMethodAndCount()
+    {
+        var path = TempSavePath();
+        using (var source = CreateListeningViewModel(path))
+        {
+            source.ProcessRecognizedText("start infiltration");
+            source.ProcessRecognizedText("shot the button");
+            source.ProcessRecognizedText("backstage camera down");
+            source.SaveHeistCommand.Execute(null);
+        }
+
+        using var restored = CreateListeningViewModel(path);
+        Assert.False(restored.SecurityCameras.Single(camera => camera.Id == "main-floor-camera-03").IsActive);
+        Assert.False(restored.SecurityCameras.Single(camera => camera.Id == "main-floor-camera-01").IsActive);
+        Assert.Equal(2, restored.TotalDisabledCameras);
+        Assert.Equal(1, restored.CountedCameraTakedowns);
+        Assert.False(restored.IsCameraStealthCompromised);
+    }
+
+    [Fact]
+    public void SkylightAndButtonDisablesUndoWithoutChangingCount()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var showroom = viewModel.SecurityCameras.Single(camera => camera.Id == "main-floor-camera-03");
+        viewModel.ProcessRecognizedText("start infiltration");
+        viewModel.ProcessRecognizedText("going down skylight");
+        Assert.False(showroom.IsActive);
+        Assert.Equal(0, viewModel.CountedCameraTakedowns);
+        viewModel.ProcessRecognizedText("undo");
+        Assert.True(showroom.IsActive);
+        Assert.Equal(PlannerStage.HeistInfiltration, viewModel.CurrentStage);
+
+        viewModel.ProcessRecognizedText("shot the button");
+        Assert.False(showroom.IsActive);
+        viewModel.ProcessRecognizedText("undo");
+        Assert.True(showroom.IsActive);
+        Assert.Equal(0, viewModel.CountedCameraTakedowns);
     }
 
     [Fact]

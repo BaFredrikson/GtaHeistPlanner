@@ -62,7 +62,7 @@ public sealed class HeistSessionStore
             throw new InvalidDataException("Saved heist timestamps are invalid.");
         if (save.PlayerCount is < 1 or > 4) throw new InvalidDataException("Saved player count must be between 1 and 4.");
         if (!Enum.IsDefined(save.Stage)) throw new InvalidDataException("Saved planner stage is invalid.");
-        if (save.GuardsDown < 0 || save.CamerasDown is < 0 or > HeistSessionState.CameraDisableLimit)
+        if (save.GuardsDown < 0 || save.CamerasDown < 0 || save.SecurityRuntimeState.CountedCameraTakedowns < 0)
             throw new InvalidDataException("Saved guard/camera counters are invalid.");
         if (save.LootStates.Count(entry => entry.Value.IsBuyersRequest) > GtaHeistPlanner.Core.Loot.LootRunState.BuyersRequestLimit)
             throw new InvalidDataException("Saved Buyer's Request count exceeds the heist limit.");

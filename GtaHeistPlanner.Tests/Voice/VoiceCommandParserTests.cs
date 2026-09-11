@@ -36,6 +36,7 @@ public sealed class VoiceCommandParserTests
     [InlineData("west painting one hundred eighteen thousand", 118000)]
     [InlineData("west painting 118000", 118000)]
     [InlineData("  WEST   PAINTING, 118 K! ", 118000)]
+    [InlineData("west painting 118 thousand 500", 118500)]
     public void ParsesAliasAndSpokenValue(string text, int expectedValue)
     {
         var command = Assert.IsType<RecordScopedLootCommand>(
@@ -86,6 +87,22 @@ public sealed class VoiceCommandParserTests
         var command = Assert.IsType<SetPendingLootValueCommand>(
             new VoiceCommandParser([WestPainting]).Parse("one hundred eighteen thousand", context, PlannerStage.Preparation).Command);
         Assert.Equal(118000, command.ScopedValue);
+        Assert.True(command.ValueParse!.UsedThousandsUnit);
+    }
+
+    [Fact]
+    public void NumericRemainderRequiresExplicitContinuationContext()
+    {
+        var parser = new VoiceCommandParser([WestPainting]);
+        var context = new VoiceCommandContext
+        {
+            ScopeOutActive = true,
+            NumericContinuationTargetId = WestPainting.Id,
+            NumericContinuationBaseValue = 118000,
+        };
+        var command = Assert.IsType<ContinueLootValueCommand>(parser.Parse("five hundred", context, PlannerStage.Preparation).Command);
+        Assert.Equal(500, command.Remainder);
+        Assert.Null(parser.Parse("500", new() { ScopeOutActive = true }, PlannerStage.Preparation).Command);
     }
 
     [Fact]
@@ -119,6 +136,41 @@ public sealed class VoiceCommandParserTests
     [InlineData("alpha mail arriving")]
     public void ActivityAliasesAreDeterministic(string phrase) =>
         Assert.Equal(PlannerStage.HeistActivity, Assert.IsType<ChangeStageVoiceCommand>(Parse(phrase).Command).Stage);
+
+    [Theory]
+    [InlineData("tango down")]
+    [InlineData("guard down")]
+    [InlineData("guard dropped")]
+    [InlineData("dropped guard")]
+    [InlineData("dropped a guard")]
+    [InlineData("took out guard")]
+    [InlineData("took out a guard")]
+    [InlineData("guard neutralized")]
+    [InlineData("  GUARD DOWN! ")]
+    public void GuardAliasesShareOneCommand(string phrase) =>
+        Assert.IsType<IncrementGuardsDownVoiceCommand>(Parse(phrase).Command);
+
+    [Theory]
+    [InlineData("camera down")]
+    [InlineData("camera disabled")]
+    [InlineData("disabled camera")]
+    [InlineData("charlie down")]
+    [InlineData("Camera Disabled!")]
+    public void CameraAliasesShareOneCommand(string phrase) =>
+        Assert.IsType<IncrementCamerasDownVoiceCommand>(Parse(phrase).Command);
+
+    [Fact]
+    public void NamedCameraAndShowroomButtonResolveToDedicatedCommands()
+    {
+        var camera = new GtaHeistPlanner.Core.Security.SecurityCameraDefinition(
+            "showroom", "main-floor", "Showroom Camera", .5, .5, 0, 60, .2);
+        var parser = new VoiceCommandParser([WestPainting], KortzMapCatalog.Maps, [camera]);
+
+        Assert.Equal("showroom", Assert.IsType<DisableNamedCameraVoiceCommand>(parser.Parse(
+            "Showroom Camera disabled!", new(), PlannerStage.HeistInfiltration).Command).CameraId);
+        Assert.IsType<DisableShowroomByButtonVoiceCommand>(parser.Parse(
+            "shot the button", new(), PlannerStage.HeistInfiltration).Command);
+    }
 
     [Fact]
     public void BackUpExitsMapFocusAndDoesNotUndo() =>

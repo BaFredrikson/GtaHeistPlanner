@@ -1,6 +1,7 @@
 using System.Text.Json;
 using GtaHeistPlanner.App.Services;
 using GtaHeistPlanner.Core.Planning;
+using GtaHeistPlanner.Core.Security;
 
 namespace GtaHeistPlanner.Tests.Planning;
 
@@ -19,6 +20,8 @@ public sealed class HeistSessionStoreTests
         Assert.Equal(PlannerStage.HeistActivity, loaded.Stage);
         Assert.Equal(118000, loaded.LootStates["west"].ScopedValue);
         Assert.Equal(["entrance", "route-a"], loaded.SewerRuntimeState.HighlightedPathIds);
+        Assert.Equal(1, loaded.SecurityRuntimeState.CountedCameraTakedowns);
+        Assert.Equal(CameraDisableMethod.DisableButton, loaded.SecurityRuntimeState.DisabledCameras["showroom"]);
         using var json = JsonDocument.Parse(File.ReadAllText(path));
         Assert.False(json.RootElement.TryGetProperty("OpenAiApiKey", out _));
         Assert.False(json.RootElement.TryGetProperty("RecordingDeviceId", out _));
@@ -55,6 +58,11 @@ public sealed class HeistSessionStoreTests
         PlayerCount = 2, Stage = PlannerStage.HeistActivity, VaultCode = "46-18-73", GuardsDown = 3, CamerasDown = 1,
         LootStates = new() { ["west"] = new(true, 118000, true, true) },
         SewerRuntimeState = new() { RouteInput = "2C", IsRouteComplete = true, HighlightedPathIds = ["entrance", "route-a"] },
+        SecurityRuntimeState = new()
+        {
+            CountedCameraTakedowns = 1,
+            DisabledCameras = new() { ["showroom"] = CameraDisableMethod.DisableButton },
+        },
     };
 
     private static string TempPath() => Path.Combine(Path.GetTempPath(), $"gta-heist-{Guid.NewGuid():N}", "current-heist.json");
