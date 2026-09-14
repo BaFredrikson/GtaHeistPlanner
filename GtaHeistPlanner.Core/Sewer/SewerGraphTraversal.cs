@@ -2,7 +2,16 @@ namespace GtaHeistPlanner.Core.Sewer;
 
 public static class SewerGraphTraversal
 {
+    public static SewerTraversalResult TraversePrefix(SewerGraph graph, IReadOnlyList<SewerInstruction> instructions)
+    {
+        var result = TraverseCore(graph, instructions, requireComplete: false);
+        return result;
+    }
+
     public static SewerTraversalResult Traverse(SewerGraph graph, IReadOnlyList<SewerInstruction> instructions)
+        => TraverseCore(graph, instructions, requireComplete: true);
+
+    private static SewerTraversalResult TraverseCore(SewerGraph graph, IReadOnlyList<SewerInstruction> instructions, bool requireComplete)
     {
         Validate(graph);
         if (graph.StartChamber is null)
@@ -27,8 +36,10 @@ public static class SewerGraphTraversal
                 return Failed(null, steps, pathIds, $"Instruction {instruction} exits directly; the route must reach Chamber {graph.ExitChamber} before the configured exit segment.");
             current = step.DestinationChamber!.Value;
         }
-        if (current != graph.ExitChamber)
+        if (current != graph.ExitChamber && requireComplete)
             return Failed(current, steps, pathIds, $"Expected the spoken route to finish at Chamber {graph.ExitChamber} but reached Chamber {current}.");
+        if (current != graph.ExitChamber)
+            return new(false, current, steps, pathIds, null);
         pathIds.Add(graph.ExitPathId);
         return Complete(steps, pathIds);
     }

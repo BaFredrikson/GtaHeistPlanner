@@ -318,7 +318,11 @@
 
                 <StackPanel Spacing="7" IsVisible="{Binding IsSewerSelected}">
                   <Separator Margin="0,8,0,3" /><TextBlock Text="SEWER ESCAPE ROUTE" FontWeight="Bold" Foreground="#F3C969" />
-                  <TextBox Text="{Binding SewerRouteInput}" PlaceholderText="2C 3C 4D" />
+                  <Border Padding="8,5" Background="#102634" CornerRadius="5">
+                    <TextBlock Text="Say chamber numbers with: Alpha · Bravo · Charlie · Delta · Echo"
+                               FontSize="10" Foreground="#75CFF4" TextWrapping="Wrap" />
+                  </Border>
+                  <TextBox Text="{Binding SewerRouteInput}" PlaceholderText="2C 1B" />
                   <Button Content="Apply route" Command="{Binding ApplySewerRouteCommand}" />
                   <TextBlock Text="{Binding SewerDiagnostic}" FontSize="11" Foreground="#FFB8B8" TextWrapping="Wrap" />
                   <TextBlock Text="Topology is authored in the sewer JSON using chamber-letter labels and neutral physical path IDs."

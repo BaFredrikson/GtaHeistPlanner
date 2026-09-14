@@ -211,6 +211,46 @@ public sealed class VoiceCommandParserTests
         Assert.Equal(expected, Assert.IsType<ApplySewerRouteVoiceCommand>(result.Command).RouteText);
     }
 
+    [Theory]
+    [InlineData("free Charlie", "3C")]
+    [InlineData("tree sea", "3C")]
+    [InlineData("for the", "4D")]
+    [InlineData("one bee", "1B")]
+    [InlineData("number two tunnel Charlie please", "2C")]
+    [InlineData("33 Charlie", "3C")]
+    [InlineData("43 Charlie", "3C")]
+    [InlineData("52 Bravo", "2B")]
+    public void SewerOnlySttAliasesNormalizeToConstrainedInstructions(string phrase, string expected)
+    {
+        Assert.True(SewerVoiceNormalizer.TryNormalize(phrase, out var route, out _));
+        Assert.Equal(expected, route);
+    }
+
+    [Theory]
+    [InlineData("sewer route")]
+    [InlineData("sower route")]
+    [InlineData("so we're route")]
+    [InlineData("sewer")]
+    [InlineData("sower")]
+    public void SewerActivationAliasesWorkInInfiltration(string phrase)
+    {
+        var result = new VoiceCommandParser([WestPainting]).Parse(phrase, new(), PlannerStage.HeistInfiltration);
+        Assert.IsType<EnterSewerRouteVoiceCommand>(result.Command);
+    }
+
+    [Theory]
+    [InlineData("so")]
+    [InlineData("so uh")]
+    [InlineData("so we're")]
+    [InlineData("so we're uh")]
+    [InlineData("so we're up")]
+    [InlineData("route")]
+    public void AmbiguousSewerActivationDoesNotApplyGlobally(string phrase)
+    {
+        var result = new VoiceCommandParser([WestPainting]).Parse(phrase, new(), PlannerStage.Preparation);
+        Assert.IsNotType<EnterSewerRouteVoiceCommand>(result.Command);
+    }
+
     [Fact]
     public void DirectSewerRoutePrefixNormalizesWithoutPendingMode()
     {

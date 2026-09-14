@@ -54,6 +54,18 @@ public sealed class SewerRouteTests
     }
 
     [Fact]
+    public void PrefixTraversalAcceptsValidIncompleteRouteButRejectsWrongChamber()
+    {
+        var valid = SewerGraphTraversal.TraversePrefix(Graph(), SewerRouteParser.Parse("2C"));
+        Assert.False(valid.IsComplete);
+        Assert.Equal(3, valid.CurrentChamber);
+        Assert.Null(valid.Error);
+
+        var invalid = SewerGraphTraversal.TraversePrefix(Graph(), SewerRouteParser.Parse("3C"));
+        Assert.Contains("Expected instruction for Chamber 2", invalid.Error);
+    }
+
+    [Fact]
     public void ExitInstructionResolvesWithoutDestination()
     {
         var step = SewerConnectionResolver.Resolve(Graph(), new(4, 'D'));

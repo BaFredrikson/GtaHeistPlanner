@@ -32,6 +32,10 @@ public sealed class VoiceCommandParser
         var text = SpokenTextNormalizer.Normalize(recognizedText);
         if (text.Length == 0) return Ignored();
 
+        if (context.AwaitingSewerRoute && text is "undo route" or "back") return Parsed(new UndoSewerRouteVoiceCommand());
+        if (context.AwaitingSewerRoute && text is "clear route" or "start over") return Parsed(new ClearSewerRouteVoiceCommand());
+        if (context.AwaitingSewerRoute && SewerVoiceNormalizer.IsActivationPhrase(text, true)) return Parsed(new EnterSewerRouteVoiceCommand());
+
         if (text == "undo") return Parsed(new UndoVoiceCommand());
         if (text is "back up" or "pull back") return Parsed(new ExitMapFocusVoiceCommand());
         if (text == "scope out") return Parsed(new ActivateScopeOutCommand());
@@ -44,6 +48,8 @@ public sealed class VoiceCommandParser
         if (text is "using access codes" or "alpha mail arriving") return Parsed(new ChangeStageVoiceCommand(PlannerStage.HeistActivity));
         if (text == "outta the sewers") return Parsed(new ExitSewerRouteVoiceCommand());
         if (text == "sewer grate reached") return Parsed(new EnterSewerRouteVoiceCommand());
+        if (stage == PlannerStage.HeistInfiltration && SewerVoiceNormalizer.IsActivationPhrase(text, false))
+            return Parsed(new EnterSewerRouteVoiceCommand());
         if (VoiceCommandCatalog.GuardDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementGuardsDownVoiceCommand());
         if (VoiceCommandCatalog.CameraDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementCamerasDownVoiceCommand());
         if (VoiceCommandCatalog.ShowroomButton.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new DisableShowroomByButtonVoiceCommand());

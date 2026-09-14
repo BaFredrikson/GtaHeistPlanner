@@ -491,7 +491,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     "plan out", "plan it", "pan out", "pan it", "overview", "heist start", "start heist",
                     "start infiltration", "infiltration start", "tango down", "dropped guard", "camera down",
                     "charlie down", "going down skylight", "using access codes", "alpha mail arriving",
-                    "sewer grate reached", "sewer route", "shot the button", "chamber", "alpha", "bravo", "charlie", "delta", "echo",
+                    "sewer grate reached", "sewer route", "sower route", "so we're route", "so we're", "undo route", "clear route", "start over",
+                    "shot the button", "chamber", "number", "tunnel", "free", "tree", "sicks", "alpha", "bravo", "charlie", "delta", "echo",
                     "outta the sewers", "pull up", "pull back", "back up", "undo",
                     "painting", "rings", "loading bay cargo", "safety deposit boxes", "Glass Cutter", "Power Drills", "Coquard"])
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -633,7 +634,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             AddVoiceTranscript(text, false);
             return;
         }
-        var parse = _voiceCommandParser.Parse(text, _voiceContext, CurrentStage);
+        var parse = !_voiceContext.AwaitingSewerRoute && FocusedMapId == "sewer" &&
+                    SewerVoiceNormalizer.IsActivationPhrase(text, allowAmbiguous: true)
+            ? new VoiceCommandParseResult(VoiceParseDisposition.Parsed, new EnterSewerRouteVoiceCommand())
+            : _voiceCommandParser.Parse(text, _voiceContext, CurrentStage);
         LastParsedVoiceCommand = parse.Command?.GetType().Name ?? parse.Disposition.ToString();
         VoiceCommandError = parse.Error;
         if (parse.Command is not null and not (RecordScopedLootCommand or SetPendingLootValueCommand or ContinueLootValueCommand))
@@ -721,6 +725,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             case EnterSewerRouteVoiceCommand:
                 CurrentStage = PlannerStage.HeistInfiltration;
                 FocusMap("sewer");
+                if (!_voiceContext.AwaitingSewerRoute)
+                {
+                    SewerRouteInput = string.Empty;
+                    HighlightedSewerPathIds.Clear();
+                    IsSewerRouteComplete = false;
+                    SewerRevision++;
+                }
                 _voiceContext.AwaitingSewerRoute = true;
                 return true;
             case ApplySewerRouteVoiceCommand route:
@@ -728,17 +739,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 {
                     CurrentStage = PlannerStage.HeistInfiltration;
                     FocusMap("sewer");
-                    SewerRouteInput = route.RouteText;
-                    SetSewerRoute(SewerRouteParser.Parse(route.RouteText));
-                    if (!IsSewerRouteComplete) return RejectVoice($"Parsed: {route.RouteText}. {SewerDiagnostic ?? "Sewer route is incomplete."}");
-                    _voiceContext.AwaitingSewerRoute = false;
-                    SewerDiagnostic = $"Parsed: {route.RouteText}. {SewerDiagnostic}";
+                    var existing = _voiceContext.AwaitingSewerRoute && !string.IsNullOrWhiteSpace(SewerRouteInput)
+                        ? SewerRouteParser.Parse(SewerRouteInput) : [];
+                    var appended = SewerRouteParser.Parse(route.RouteText);
+                    var combined = existing.Concat(appended).ToArray();
+                    var result = SewerGraphTraversal.TraversePrefix(BuildSewerGraph(), combined);
+                    var canonical = string.Join(' ', combined);
+                    _speechRecognitionService.Diagnostics.Record($"Sewer voice: raw='{LastRecognizedText}', normalized='{route.RouteText}', candidate='{canonical}', graph='{result.Error ?? (result.IsComplete ? "complete" : "valid prefix")}'");
+                    RefreshVoiceStartupDiagnostics();
+                    if (result.Error is not null) return RejectVoice($"Heard: \"{LastRecognizedText}\". Parsed: {canonical}. {result.Error}");
+                    ApplySewerTraversalResult(canonical, result);
+                    if (result.IsComplete) _voiceContext.AwaitingSewerRoute = false;
                     return true;
                 }
                 catch (Exception exception) when (exception is FormatException or InvalidDataException)
                 {
                     return RejectVoice(exception.Message);
                 }
+            case UndoSewerRouteVoiceCommand:
+                return UndoSewerInstruction();
+            case ClearSewerRouteVoiceCommand:
+                ClearSpokenSewerRoute();
+                return true;
             case ExitSewerRouteVoiceCommand:
                 _voiceContext.AwaitingSewerRoute = false;
                 CurrentStage = PlannerStage.HeistActivity;
@@ -747,6 +769,40 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             default:
                 return RejectVoice("Unsupported voice command.");
         }
+    }
+
+    private void ApplySewerTraversalResult(string canonical, SewerTraversalResult result)
+    {
+        SewerRouteInput = canonical;
+        IsSewerRouteComplete = result.IsComplete;
+        HighlightedSewerPathIds.Clear();
+        foreach (var pathId in result.PathIds) HighlightedSewerPathIds.Add(pathId);
+        SewerDiagnostic = result.IsComplete
+            ? $"Current route: {canonical.Replace(" ", " -> ")} · complete"
+            : $"Current route: {canonical.Replace(" ", " -> ")} · next chamber {result.CurrentChamber}";
+        SewerRevision++;
+    }
+
+    private bool UndoSewerInstruction()
+    {
+        var instructions = string.IsNullOrWhiteSpace(SewerRouteInput) ? [] : SewerRouteParser.Parse(SewerRouteInput).ToList();
+        if (instructions.Count == 0) return RejectVoice("The spoken sewer route is already empty.");
+        instructions.RemoveAt(instructions.Count - 1);
+        if (instructions.Count == 0) { ClearSpokenSewerRoute(); return true; }
+        var canonical = string.Join(' ', instructions);
+        ApplySewerTraversalResult(canonical, SewerGraphTraversal.TraversePrefix(BuildSewerGraph(), instructions));
+        _voiceContext.AwaitingSewerRoute = true;
+        return true;
+    }
+
+    private void ClearSpokenSewerRoute()
+    {
+        SewerRouteInput = string.Empty;
+        HighlightedSewerPathIds.Clear();
+        IsSewerRouteComplete = false;
+        SewerDiagnostic = "Current route cleared. Say a chamber number and phonetic tunnel letter.";
+        SewerRevision++;
+        _voiceContext.AwaitingSewerRoute = true;
     }
 
     private static IEnumerable<string> SewerVocabulary(SewerConnection connection)
@@ -923,6 +979,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         DisableShowroomByButtonVoiceCommand => "✓ Showroom Camera disabled · does not count against stealth",
         ChangeStageVoiceCommand { IsSkylightEntry: true } => "✓ Skylight infiltration · Showroom Camera automatically disabled",
         IncrementCamerasDownVoiceCommand => CameraAcknowledgement("Camera"),
+        ApplySewerRouteVoiceCommand route => $"✓ {route.RouteText}",
+        UndoSewerRouteVoiceCommand => "✓ Last sewer instruction removed",
+        ClearSewerRouteVoiceCommand => "✓ Sewer route cleared",
         _ => BaseSuccessMessage(command),
     };
 

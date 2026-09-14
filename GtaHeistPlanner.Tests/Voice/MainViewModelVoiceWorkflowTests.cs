@@ -96,6 +96,41 @@ public sealed class MainViewModelVoiceWorkflowTests
     }
 
     [Fact]
+    public void SewerRouteBuildsIncrementallyAndSupportsCorrectionCommands()
+    {
+        using var viewModel = CreateListeningViewModel();
+        viewModel.ProcessRecognizedText("sewer grate reached");
+        viewModel.ProcessRecognizedText("two Charlie");
+        Assert.Equal("2C", viewModel.SewerRouteInput);
+        Assert.Contains("next chamber 1", viewModel.SewerDiagnostic, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.ProcessRecognizedText("back");
+        Assert.Equal(string.Empty, viewModel.SewerRouteInput);
+        viewModel.ProcessRecognizedText("two Charlie");
+        viewModel.ProcessRecognizedText("one Bravo");
+        Assert.Equal("2C 1B", viewModel.SewerRouteInput);
+        Assert.True(viewModel.IsSewerRouteComplete);
+
+        viewModel.ProcessRecognizedText("sewer route");
+        viewModel.ProcessRecognizedText("clear route");
+        Assert.Equal(string.Empty, viewModel.SewerRouteInput);
+    }
+
+    [Theory]
+    [InlineData("so we're")]
+    [InlineData("so we're uh")]
+    [InlineData("so we're up")]
+    [InlineData("route")]
+    public void AmbiguousActivationWorksOnlyWhenSewerMapIsFocused(string phrase)
+    {
+        using var viewModel = CreateListeningViewModel();
+        viewModel.CurrentStage = PlannerStage.HeistInfiltration;
+        viewModel.FocusMapCommand.Execute("sewer");
+        viewModel.ProcessRecognizedText(phrase);
+        Assert.Contains("SewerRoute", viewModel.VoiceContextSummary);
+    }
+
+    [Fact]
     public void DirectSewerRouteFocusesSewerAndAppliesRoute()
     {
         using var viewModel = CreateListeningViewModel();

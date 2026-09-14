@@ -21,6 +21,8 @@ public sealed record DisableNamedCameraVoiceCommand(string CameraId) : VoiceComm
 public sealed record DisableShowroomByButtonVoiceCommand : VoiceCommand;
 public sealed record EnterSewerRouteVoiceCommand : VoiceCommand;
 public sealed record ApplySewerRouteVoiceCommand(string RouteText) : VoiceCommand;
+public sealed record UndoSewerRouteVoiceCommand : VoiceCommand;
+public sealed record ClearSewerRouteVoiceCommand : VoiceCommand;
 public sealed record ExitSewerRouteVoiceCommand : VoiceCommand;
 
 public enum VoiceParseDisposition
