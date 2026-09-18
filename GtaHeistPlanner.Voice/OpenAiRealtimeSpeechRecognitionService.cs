@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace GtaHeistPlanner.Voice;
 
-public sealed class OpenAiRealtimeSpeechRecognitionService : ISpeechRecognitionService
+public sealed class OpenAiRealtimeSpeechRecognitionService : ISpeechTranscriptionProvider
 {
     internal const int SpeechActivityThreshold = 3;
     internal const double CommitSilenceMilliseconds = 700;
@@ -28,6 +28,8 @@ public sealed class OpenAiRealtimeSpeechRecognitionService : ISpeechRecognitionS
     public event EventHandler<SpeechRecognitionFailedEventArgs>? RecognitionFailed;
     public string StateDescription { get; private set; } = "Stopped";
     public VoiceDiagnosticTrace Diagnostics { get; }
+    public GtaHeistPlanner.Core.Settings.TranscriptionProviderKind Kind => GtaHeistPlanner.Core.Settings.TranscriptionProviderKind.OpenAi;
+    public TranscriptionProviderCapabilities Capabilities { get; } = new(true, true, false);
 
     public OpenAiRealtimeSpeechRecognitionService(
         Func<IRealtimeTranscriptionTransport>? transportFactory = null,
@@ -174,6 +176,18 @@ public sealed class OpenAiRealtimeSpeechRecognitionService : ISpeechRecognitionS
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default) => StopCoreAsync(cancellationToken);
+
+    public async Task<string> TestAsync(CancellationToken cancellationToken = default)
+    {
+        var apiKey = _apiKeyProvider();
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("OpenAI API key is not configured.");
+        await using var transport = _transportFactory();
+        await transport.ConnectAsync(apiKey, new RealtimeTranscriptionOptions([]), cancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
+        await transport.CloseAsync(cancellationToken).ConfigureAwait(false);
+        return "OpenAI connection successful.";
+    }
 
     private async Task StopCoreAsync(CancellationToken cancellationToken = default)
     {

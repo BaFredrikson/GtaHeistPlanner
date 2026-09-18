@@ -9,16 +9,31 @@ public sealed class VoiceCommandParser
 {
     private readonly IReadOnlyList<AliasEntry> _lootAliases;
     private readonly IReadOnlyList<AliasEntry> _mapAliases;
-    private readonly IReadOnlyList<AliasEntry> _cameraAliases;
+    private readonly IReadOnlyList<CameraAliasEntry> _cameraAliases;
+    private readonly IReadOnlyList<GuardAliasEntry> _guardAliases;
 
     public VoiceCommandParser(IEnumerable<LootSpawnDefinition> lootDefinitions, IEnumerable<MapDefinition>? maps = null,
-        IEnumerable<SecurityCameraDefinition>? cameras = null)
+        IEnumerable<SecurityCameraDefinition>? cameras = null, IEnumerable<SecurityGuardDefinition>? guards = null)
     {
         _lootAliases = BuildAliases(lootDefinitions.SelectMany(definition =>
             definition.VoiceAliases.Append(definition.Name).Select(alias => (alias, definition.Id))));
         _mapAliases = BuildAliases((maps ?? []).SelectMany(map => MapAliases(map).Select(alias => (alias, map.Id))));
-        _cameraAliases = BuildAliases((cameras ?? []).SelectMany(camera =>
-            new[] { $"{camera.Name} down", $"{camera.Name} disabled" }.Select(alias => (alias, camera.Id))));
+        var mapCategories = (maps ?? []).ToDictionary(map => map.Id, map => map.Category, StringComparer.Ordinal);
+        _cameraAliases = (cameras ?? [])
+            .Where(camera => !string.IsNullOrWhiteSpace(camera.Name) &&
+                SpokenTextNormalizer.Normalize(camera.Name) != SpokenTextNormalizer.Normalize(camera.Id))
+            .Select(camera => new CameraAliasEntry(SpokenTextNormalizer.Normalize(camera.Name), camera.Id, camera.MapId,
+                mapCategories.GetValueOrDefault(camera.MapId)))
+            .OrderByDescending(entry => entry.Alias.Length)
+            .ToArray();
+        _guardAliases = (guards ?? [])
+            .Where(IsIdentifiableGuard)
+            .SelectMany(guard => guard.VoiceAliases.Append(guard.Name)
+                .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                .Select(alias => new GuardAliasEntry(SpokenTextNormalizer.Normalize(alias), guard.Id, guard.MapId)))
+            .Distinct()
+            .OrderByDescending(entry => entry.Alias.Length)
+            .ToArray();
     }
 
     public VoiceCommandParseResult Parse(string recognizedText, ScopeOutSessionState state)
@@ -53,8 +68,8 @@ public sealed class VoiceCommandParser
         if (VoiceCommandCatalog.GuardDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementGuardsDownVoiceCommand());
         if (VoiceCommandCatalog.CameraDown.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new IncrementCamerasDownVoiceCommand());
         if (VoiceCommandCatalog.ShowroomButton.Aliases.Contains(text, StringComparer.Ordinal)) return Parsed(new DisableShowroomByButtonVoiceCommand());
-        var namedCamera = ResolveExactAlias(text, _cameraAliases, id => new DisableNamedCameraVoiceCommand(id), "camera");
-        if (namedCamera.Disposition != VoiceParseDisposition.Rejected || _cameraAliases.Any(alias => alias.Alias == text)) return namedCamera;
+        var namedCamera = ResolveNamedCamera(text, stage);
+        if (namedCamera is not null) return namedCamera;
         if (text is "special loot" or "buyers request" or "buyer s request") return Parsed(new ToggleSpecialLootCommand());
 
         if (text.StartsWith("pull up ", StringComparison.Ordinal))
@@ -75,10 +90,54 @@ public sealed class VoiceCommandParser
             SpokenCurrencyParser.TryParseDetailed(text, out var remainder) && !remainder.UsedThousandsUnit && remainder.Value is >= 1 and <= 999)
             return Parsed(new ContinueLootValueCommand(continuationTarget, remainder.Value));
 
+        var namedGuard = ResolveNamedGuard(text, stage);
+        if (namedGuard is not null) return namedGuard;
+
         if (stage is not (PlannerStage.Preparation or PlannerStage.HeistActivity) ||
             (stage == PlannerStage.Preparation && !context.ScopeOutActive)) return Ignored();
         return ResolveLoot(text);
     }
+
+    private VoiceCommandParseResult? ResolveNamedGuard(string text, PlannerStage stage)
+    {
+        var policy = StageViewPolicies.Get(stage);
+        var padded = $" {text} ";
+        var matches = _guardAliases
+            .Where(entry => policy.AllowsOverlay(OverlayType.InteriorGuards, entry.MapId) &&
+                            padded.Contains($" {entry.Alias} ", StringComparison.Ordinal))
+            .Select(entry => entry.TargetId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return matches.Length switch
+        {
+            0 => null,
+            1 => Parsed(new DisableNamedGuardVoiceCommand(matches[0], matches)),
+            _ => Rejected($"Ambiguous guard name; matching guard IDs: {string.Join(", ", matches)}."),
+        };
+    }
+
+    private VoiceCommandParseResult? ResolveNamedCamera(string text, PlannerStage stage)
+    {
+        var policy = StageViewPolicies.Get(stage);
+        var padded = $" {text} ";
+        var matches = _cameraAliases.Where(entry =>
+                policy.AllowsOverlay(entry.Category == MapCategory.Exterior
+                    ? OverlayType.ExteriorCameras : OverlayType.InteriorCameras, entry.MapId) &&
+                padded.Contains($" {entry.Alias} ", StringComparison.Ordinal))
+            .Select(entry => entry.TargetId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return matches.Length switch
+        {
+            0 => null,
+            1 => Parsed(new DisableNamedCameraVoiceCommand(matches[0])),
+            _ => Rejected($"Ambiguous camera name; matching camera IDs: {string.Join(", ", matches)}."),
+        };
+    }
+
+    private static bool IsIdentifiableGuard(SecurityGuardDefinition guard) =>
+        guard.VoiceAliases.Count > 0 || !string.IsNullOrWhiteSpace(guard.Name) &&
+        !string.Equals(SpokenTextNormalizer.Normalize(guard.Name), SpokenTextNormalizer.Normalize(guard.Id), StringComparison.Ordinal);
 
     private VoiceCommandParseResult ResolveLoot(string text)
     {
@@ -138,4 +197,6 @@ public sealed class VoiceCommandParser
     private static VoiceCommandParseResult Rejected(string error) => new(VoiceParseDisposition.Rejected, Error: error);
     private static VoiceCommandParseResult Ignored() => new(VoiceParseDisposition.Ignored);
     private sealed record AliasEntry(string Alias, string TargetId);
+    private sealed record CameraAliasEntry(string Alias, string TargetId, string MapId, MapCategory Category);
+    private sealed record GuardAliasEntry(string Alias, string TargetId, string MapId);
 }

@@ -6,4 +6,7 @@ public sealed record SecurityGuardDefinition(
     string Name,
     double X,
     double Y,
-    IReadOnlyList<string> PatrolIds);
+    IReadOnlyList<string> PatrolIds)
+{
+    public IReadOnlyList<string> VoiceAliases { get; init; } = [];
+}

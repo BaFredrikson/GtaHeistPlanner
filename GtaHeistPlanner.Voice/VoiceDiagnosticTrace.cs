@@ -31,7 +31,10 @@ public sealed class VoiceDiagnosticTrace
 
     public void RecordException(string step, Exception exception)
     {
-        Record($"{step} failed. Exception follows without replacement:\n{exception}");
+        var nativeError = exception is System.ComponentModel.Win32Exception win32
+            ? $"; Win32 NativeErrorCode={win32.NativeErrorCode}"
+            : string.Empty;
+        Record($"{step} failed. Exception type={exception.GetType().FullName}; HResult=0x{exception.HResult:X8}; Win32 low word={exception.HResult & 0xFFFF}{nativeError}. Exception follows without replacement:\n{exception}");
         if (exception.InnerException is not null)
             Record($"Inner exception:\n{exception.InnerException}");
     }

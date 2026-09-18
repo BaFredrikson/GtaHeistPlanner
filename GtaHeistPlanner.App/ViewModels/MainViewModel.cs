@@ -23,6 +23,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly MapCalibrationStore _calibrationStore = new();
     private readonly LootSpawnStore _lootSpawnStore = new();
     private readonly ApplicationSettingsStore _settingsStore = new();
+    private readonly ProtectedVoiceSecretStore _voiceSecretStore = new();
+    private readonly LocalWhisperModelStore _localWhisperModelStore = new();
     private readonly RecordingDeviceService _recordingDeviceService = new();
     private readonly SewerGraphStore _sewerGraphStore = new();
     private readonly SecurityDatasetStore _securityDatasetStore = new();
@@ -45,6 +47,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private string? _lastUndoneVoiceAction;
     private Guid _heistId = Guid.NewGuid();
     private DateTimeOffset _heistCreatedAtUtc = DateTimeOffset.UtcNow;
+    private bool _lastNamedGuardWasAlreadyDown;
+    private string? _lastNamedGuardName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedMapAssetUri))]
@@ -112,6 +116,25 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsInteractionEditorVisible))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UseLocalWhisper))]
+    [NotifyPropertyChangedFor(nameof(UseOpenAi))]
+    [NotifyPropertyChangedFor(nameof(UseCustomTranscription))]
+    public partial TranscriptionProviderKind SelectedVoiceProvider { get; set; } = TranscriptionProviderKind.LocalWhisper;
+    [ObservableProperty] public partial string SelectedLocalWhisperModel { get; set; } = "small.en";
+    [ObservableProperty] public partial LocalWhisperCompute SelectedLocalWhisperCompute { get; set; } = LocalWhisperCompute.Auto;
+    [ObservableProperty] public partial string SelectedOpenAiModel { get; set; } = "gpt-live-transcribe";
+    [ObservableProperty] public partial string CustomTranscriptionEndpoint { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CustomTranscriptionModel { get; set; } = string.Empty;
+    [ObservableProperty] public partial string OpenAiApiKeyInput { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CustomApiKeyInput { get; set; } = string.Empty;
+    [ObservableProperty] public partial string? VoiceProviderTestStatus { get; set; }
+    [ObservableProperty] public partial string LocalModelStatus { get; set; } = "Missing";
+    [ObservableProperty] public partial double LocalModelDownloadProgress { get; set; }
+    [ObservableProperty] public partial bool IsLocalModelDownloadIndeterminate { get; set; }
+    [ObservableProperty] public partial string? LocalModelDownloadProgressText { get; set; }
+    [ObservableProperty] public partial string? LocalModelDownloadDiagnostics { get; set; }
+    [ObservableProperty] public partial string LocalWhisperBackendStatus { get; set; } = "Not detected";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfiguredCaptureDevice))]
     public partial RecordingDeviceInfo? SelectedRecordingDevice { get; set; }
@@ -208,6 +231,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         new(PlannerStage.HeistInfiltration, "Infiltration"),
         new(PlannerStage.HeistActivity, "Heist"),
     ];
+    public IReadOnlyList<string> LocalWhisperModels { get; } = LocalWhisperModelCatalog.Models.Select(model => model.Id).ToArray();
+    public IReadOnlyList<LocalWhisperCompute> LocalWhisperComputeOptions { get; } = Enum.GetValues<LocalWhisperCompute>();
+    public IReadOnlyList<string> OpenAiTranscriptionModels { get; } = ["gpt-live-transcribe"];
     public IReadOnlyList<LootEconomics> LootTypes { get; } = LootEconomicsCatalog.Standard;
     public string SelectedMapAssetUri => $"avares://GtaHeistPlanner.App/{SelectedMap.SvgAssetPath}";
     public StageViewPolicy CurrentPolicy => StageViewPolicies.Get(CurrentStage);
@@ -247,15 +273,21 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public string MicrophoneColor => MicrophoneStatus switch
     {
         MicrophoneStatus.Off => "#687484",
+        MicrophoneStatus.Initializing => "#E8A65A",
         MicrophoneStatus.Listening => "#E24B4B",
         MicrophoneStatus.InputDetected => "#52E36D",
+        MicrophoneStatus.Transcribing => "#75CFF4",
+        MicrophoneStatus.Error => "#FF7777",
         _ => "#687484",
     };
     public string MicrophoneStatusText => MicrophoneStatus switch
     {
         MicrophoneStatus.Off => "Microphone off",
+        MicrophoneStatus.Initializing => "Microphone initializing",
         MicrophoneStatus.Listening => "Microphone listening",
         MicrophoneStatus.InputDetected => "Microphone input detected",
+        MicrophoneStatus.Transcribing => "Transcribing",
+        MicrophoneStatus.Error => "Microphone error",
         _ => "Microphone",
     };
     public bool IsMicrophoneOpen => MicrophoneStatus != MicrophoneStatus.Off;
@@ -286,6 +318,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public IEnumerable<SecurityPatrolViewModel> CurrentMapPatrols => SecurityPatrols.Where(item => item.MapId == SelectedMap.Id);
     public bool HasHoveredMarker => !string.IsNullOrEmpty(HoveredMarker);
     public bool HasSelectedLoot => SelectedLoot is not null;
+    public bool UseLocalWhisper { get => SelectedVoiceProvider == TranscriptionProviderKind.LocalWhisper; set { if (value) SelectedVoiceProvider = TranscriptionProviderKind.LocalWhisper; } }
+    public bool UseOpenAi { get => SelectedVoiceProvider == TranscriptionProviderKind.OpenAi; set { if (value) SelectedVoiceProvider = TranscriptionProviderKind.OpenAi; } }
+    public bool UseCustomTranscription { get => SelectedVoiceProvider == TranscriptionProviderKind.Custom; set { if (value) SelectedVoiceProvider = TranscriptionProviderKind.Custom; } }
     public string BuyersRequestStatus =>
         $"Buyer's Request: {_lootRun.BuyersRequestCount} / {LootRunState.BuyersRequestLimit} identified";
     public string CalibrationPath => _calibrationStore.FilePath;
@@ -336,9 +371,27 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     };
 
     public MainViewModel() : this(
-        new OpenAiRealtimeSpeechRecognitionService(diagnostics: new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess())),
+        CreateDefaultSpeechService(),
         new WasapiAudioCaptureService(new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess())))
     {
+    }
+
+    private static ISpeechRecognitionService CreateDefaultSpeechService()
+    {
+        var diagnostics = new VoiceDiagnosticTrace(() => Dispatcher.UIThread.CheckAccess());
+        var secrets = new ProtectedVoiceSecretStore();
+        var models = new LocalWhisperModelStore();
+        return new SpeechTranscriptionProviderRouter(settings => settings.VoiceProvider switch
+        {
+            TranscriptionProviderKind.LocalWhisper => new LocalWhisperTranscriptionProvider(
+                models.PathFor(settings.LocalWhisperModel), settings.LocalWhisperCompute, diagnostics),
+            TranscriptionProviderKind.OpenAi => new OpenAiRealtimeSpeechRecognitionService(
+                apiKeyProvider: () => secrets.Get("openai") ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY"), diagnostics: diagnostics),
+            TranscriptionProviderKind.Custom => new OpenAiCompatibleTranscriptionProvider(
+                new Uri(settings.CustomTranscriptionEndpoint, UriKind.Absolute), settings.CustomTranscriptionModel,
+                () => secrets.Get("custom"), diagnostics: diagnostics),
+            _ => throw new ArgumentOutOfRangeException(nameof(settings.VoiceProvider)),
+        }, diagnostics);
     }
 
     public MainViewModel(
@@ -372,6 +425,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _speechRecognitionService.PartialTranscriptChanged += OnPartialTranscriptChanged;
         _speechRecognitionService.RecognitionFailed += OnRecognitionFailed;
         _audioCaptureService.FrameCaptured += OnAudioFrameCaptured;
+        _localWhisperModelStore.DiagnosticAvailable += OnModelDownloadDiagnosticAvailable;
         LoadSettings();
         ApplyStagePolicy();
         _initialCalibration = new MapCalibration();
@@ -477,6 +531,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             ObserveVoiceTask(StopVoiceRecognitionAsync(), "Disable microphone");
     }
 
+    partial void OnSelectedVoiceProviderChanged(TranscriptionProviderKind value)
+    {
+        VoiceProviderTestStatus = null;
+        if (MicrophoneStatus != MicrophoneStatus.Off)
+            ObserveVoiceTask(StopVoiceRecognitionAsync(), "Switch transcription provider");
+    }
+
+    partial void OnSelectedLocalWhisperModelChanged(string value) => RefreshLocalModelStatus();
+    partial void OnSelectedLocalWhisperComputeChanged(LocalWhisperCompute value) => RefreshLocalBackendStatus();
+
     [RelayCommand]
     private async Task ToggleMicrophone()
     {
@@ -493,6 +557,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
+            MicrophoneStatus = MicrophoneStatus.Initializing;
+            VoiceRecognitionState = SelectedVoiceProvider == TranscriptionProviderKind.LocalWhisper
+                ? $"Initializing Local Whisper - {SelectedLocalWhisperModel}..."
+                : "Initializing recognition...";
+            if (DeveloperMode)
+                _voiceUiHeartbeatTimer.Start();
+            RefreshVoiceStartupDiagnostics();
             var endpointId = SelectedRecordingDevice?.Id
                 ?? throw new InvalidOperationException("No recording device is selected. Choose one in Settings.");
             _audioCaptureService.Start(endpointId);
@@ -500,6 +571,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 .SelectMany(marker => marker.VoiceAliases.Append(marker.Name))
                 .Concat(KortzMapCatalog.Maps.Select(map => map.DisplayName))
                 .Concat(SecurityCameras.SelectMany(camera => new[] { $"{camera.Name} down", $"{camera.Name} disabled" }))
+                .Concat(SecurityGuards.SelectMany(guard => guard.VoiceAliases.Append(guard.Name)))
                 .Concat(SewerConnections.SelectMany(connection => SewerVocabulary(connection)))
                 .Concat(["scope out", "stop scope out", "special loot", "buyer's request", "vault code",
                     "plan out", "plan it", "pan out", "pan it", "overview", "heist start", "start heist",
@@ -515,6 +587,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             MicrophoneStatus = MicrophoneStatus.Listening;
             _scopeOutSession?.SetListening(true);
             VoiceRecognitionState = _speechRecognitionService.StateDescription;
+            if (SelectedVoiceProvider == TranscriptionProviderKind.LocalWhisper)
+                LocalWhisperBackendStatus = VoiceRecognitionState;
             RefreshVoiceStartupDiagnostics();
             VoiceCommandError = null;
             if (DeveloperMode)
@@ -523,6 +597,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         catch (Exception exception)
         {
+            _voiceUiHeartbeatTimer.Stop();
             _audioCaptureService.Stop();
             MicrophoneStatus = MicrophoneStatus.Off;
             _scopeOutSession?.SetListening(false);
@@ -563,6 +638,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             _speechRecognitionService.Diagnostics.RecordMilestone("Transcript UI callback");
             CurrentPartialTranscript = null;
+            MicrophoneStatus = MicrophoneStatus.Listening;
             ProcessRecognizedText(e.Text);
         });
 
@@ -571,6 +647,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             _speechRecognitionService.Diagnostics.RecordMilestone("Partial transcript UI status update");
             CurrentPartialTranscript = e.Text;
+            MicrophoneStatus = MicrophoneStatus.Transcribing;
             VoiceRecognitionState = _speechRecognitionService.StateDescription;
             RefreshVoiceStartupDiagnostics();
         });
@@ -638,6 +715,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void ProcessRecognizedText(string text)
     {
+        if (!TranscriptSanitizer.TrySanitize(text, out var sanitized))
+        {
+            _speechRecognitionService.Diagnostics.Record($"Final transcript ignored as empty/non-speech marker: {text?.Trim()}");
+            RefreshVoiceStartupDiagnostics();
+            return;
+        }
+        text = sanitized;
         LastRecognizedText = text;
         LastParsedVoiceCommand = null;
         VoiceCommandError = null;
@@ -654,6 +738,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             : _voiceCommandParser.Parse(text, _voiceContext, CurrentStage);
         LastParsedVoiceCommand = parse.Command?.GetType().Name ?? parse.Disposition.ToString();
         VoiceCommandError = parse.Error;
+        if (parse.Command is DisableNamedGuardVoiceCommand namedGuardMatch)
+            _speechRecognitionService.Diagnostics.Record(
+                $"Named guard: raw='{text}', normalized='{SpokenTextNormalizer.Normalize(text)}', candidates=[{string.Join(", ", namedGuardMatch.CandidateIds)}], selected='{namedGuardMatch.GuardId}'");
+        else if (parse.Error?.StartsWith("Ambiguous guard name", StringComparison.Ordinal) == true)
+            _speechRecognitionService.Diagnostics.Record(
+                $"Named guard ambiguous: raw='{text}', normalized='{SpokenTextNormalizer.Normalize(text)}', {parse.Error}");
         if (parse.Command is not null and not (RecordScopedLootCommand or SetPendingLootValueCommand or ContinueLootValueCommand))
             _voiceContext.ClearNumericContinuation();
         var applied = parse.Command is not null && ExecuteVoiceCommand(parse.Command);
@@ -724,14 +814,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 GuardsDown++;
                 PushVoiceUndo("guard down", () => GuardsDown = oldGuards);
                 return true;
+            case DisableNamedGuardVoiceCommand namedGuard:
+                return ApplyNamedGuardDown(namedGuard.GuardId);
             case IncrementCamerasDownVoiceCommand:
-                if (CurrentStage != PlannerStage.HeistInfiltration) return RejectVoice("Camera counters are available during Infiltration.");
+                if (CurrentStage is not (PlannerStage.HeistInfiltration or PlannerStage.HeistActivity))
+                    return RejectVoice("Camera takedowns are available during Infiltration and Heist.");
                 var oldCameras = CamerasDown;
                 CamerasDown++;
                 PushVoiceUndo("camera down", () => CamerasDown = oldCameras);
                 return true;
             case DisableNamedCameraVoiceCommand namedCamera:
-                if (CurrentStage != PlannerStage.HeistInfiltration) return RejectVoice("Camera takedowns are available during Infiltration.");
+                if (CurrentStage is not (PlannerStage.HeistInfiltration or PlannerStage.HeistActivity))
+                    return RejectVoice("Camera takedowns are available during Infiltration and Heist.");
                 return ApplyNamedCameraDisable(namedCamera.CameraId, CameraDisableMethod.Destroyed, true);
             case DisableShowroomByButtonVoiceCommand:
                 if (CurrentStage != PlannerStage.HeistInfiltration) return RejectVoice("The showroom disable button is available during Infiltration.");
@@ -834,6 +928,33 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var snapshot = SnapshotCamera(cameraId);
         DisableCamera(cameraId, method, countsAgainstStealth);
         PushVoiceUndo($"{camera.Name} disabled", () => RestoreCamera(cameraId, snapshot));
+        return true;
+    }
+
+    private bool ApplyNamedGuardDown(string guardId)
+    {
+        if (CurrentStage != PlannerStage.HeistActivity)
+            return RejectVoice("Named internal guards are available during Heist.");
+        var guard = SecurityGuards.FirstOrDefault(item => item.Id == guardId);
+        if (guard is null) return RejectVoice($"Guard '{guardId}' is not present in the current security dataset.");
+        _lastNamedGuardName = guard.Name;
+        _lastNamedGuardWasAlreadyDown = !guard.IsActive;
+        if (!guard.IsActive)
+        {
+            _speechRecognitionService.Diagnostics.Record($"Named guard selected='{guard.Id}', result=Already down");
+            return true;
+        }
+        var oldCount = GuardsDown;
+        guard.IsActive = false;
+        GuardsDown++;
+        SecurityRevision++;
+        PushVoiceUndo($"{guard.Name} down", () =>
+        {
+            guard.IsActive = true;
+            GuardsDown = oldCount;
+            SecurityRevision++;
+        });
+        _speechRecognitionService.Diagnostics.Record($"Named guard selected='{guard.Id}', result=Down");
         return true;
     }
 
@@ -990,6 +1111,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SetPendingLootValueCommand value => $"✓ Loot value · ${value.ScopedValue:N0}",
         ContinueLootValueCommand continuation => $"✓ {LootMarkers.First(marker => marker.Id == continuation.LootLocationId).Name} · ${_lootRun.GetState(continuation.LootLocationId).ScopedValue:N0}",
         DisableNamedCameraVoiceCommand named => CameraAcknowledgement(SecurityCameras.First(camera => camera.Id == named.CameraId).Name),
+        DisableNamedGuardVoiceCommand => _lastNamedGuardWasAlreadyDown
+            ? $"✓ {_lastNamedGuardName} · already down"
+            : $"✓ {_lastNamedGuardName} · down",
         DisableShowroomByButtonVoiceCommand => "✓ Showroom Camera disabled · does not count against stealth",
         ChangeStageVoiceCommand { IsSkylightEntry: true } => "✓ Skylight infiltration · Showroom Camera automatically disabled",
         IncrementCamerasDownVoiceCommand => CameraAcknowledgement("Camera"),
@@ -1034,20 +1158,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (string.IsNullOrWhiteSpace(text))
             return;
         VoiceTranscript.Add(new(text.Trim(), isCommand));
-        while (VoiceTranscript.Count > 12)
+        while (VoiceTranscript.Count > 7)
             VoiceTranscript.RemoveAt(0);
     }
 
     [RelayCommand]
     private void OpenSettings()
     {
-        _settingsSnapshot = new ApplicationSettings
-        {
-            RecordingDeviceId = SelectedRecordingDevice?.Id,
-            RecordingDeviceName = SelectedRecordingDevice?.Name,
-            MicrophoneEnabled = MicrophoneEnabled,
-            DeveloperMode = DeveloperMode,
-        };
+        _settingsSnapshot = BuildApplicationSettings();
+        OpenAiApiKeyInput = string.Empty;
+        CustomApiKeyInput = string.Empty;
+        VoiceProviderTestStatus = null;
+        RefreshLocalModelStatus();
+        RefreshLocalBackendStatus();
         RefreshRecordingDevices();
         IsSettingsOpen = true;
     }
@@ -1059,6 +1182,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             DeveloperMode = _settingsSnapshot.DeveloperMode;
             MicrophoneEnabled = _settingsSnapshot.MicrophoneEnabled;
+            ApplyVoiceSettings(_settingsSnapshot);
             RefreshRecordingDevices(_settingsSnapshot.RecordingDeviceId, _settingsSnapshot.RecordingDeviceName);
         }
         _settingsSnapshot = null;
@@ -1068,15 +1192,113 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void SaveSettings()
     {
-        _settingsStore.Save(new ApplicationSettings
-        {
-            RecordingDeviceId = SelectedRecordingDevice?.Id,
-            RecordingDeviceName = SelectedRecordingDevice?.Name,
-            MicrophoneEnabled = MicrophoneEnabled,
-            DeveloperMode = DeveloperMode,
-        });
+        if (!string.IsNullOrWhiteSpace(OpenAiApiKeyInput)) _voiceSecretStore.Set("openai", OpenAiApiKeyInput);
+        if (!string.IsNullOrWhiteSpace(CustomApiKeyInput)) _voiceSecretStore.Set("custom", CustomApiKeyInput);
+        var settings = BuildApplicationSettings();
+        _settingsStore.Save(settings);
+        if (_speechRecognitionService is SpeechTranscriptionProviderRouter router)
+            ObserveVoiceTask(router.ConfigureAsync(settings), "Configure transcription provider");
+        OpenAiApiKeyInput = string.Empty;
+        CustomApiKeyInput = string.Empty;
         _settingsSnapshot = null;
         IsSettingsOpen = false;
+    }
+
+    [RelayCommand]
+    private async Task TestVoiceProvider()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(OpenAiApiKeyInput)) _voiceSecretStore.Set("openai", OpenAiApiKeyInput);
+            if (!string.IsNullOrWhiteSpace(CustomApiKeyInput)) _voiceSecretStore.Set("custom", CustomApiKeyInput);
+            if (_speechRecognitionService is not SpeechTranscriptionProviderRouter router)
+            {
+                VoiceProviderTestStatus = "The injected recognition service does not expose provider testing.";
+                return;
+            }
+            await router.ConfigureAsync(BuildApplicationSettings());
+            VoiceProviderTestStatus = await router.TestAsync();
+        }
+        catch (Exception exception) { VoiceProviderTestStatus = exception.Message; }
+    }
+
+    [RelayCommand]
+    private async Task DownloadLocalWhisperModel()
+    {
+        try
+        {
+            LocalModelStatus = "Downloading…";
+            var progress = new Progress<ModelDownloadProgress>(value =>
+            {
+                IsLocalModelDownloadIndeterminate = value.TotalBytes is null;
+                LocalModelDownloadProgress = value.Fraction ?? 0;
+                LocalModelDownloadProgressText = value.TotalBytes is { } total
+                    ? $"{value.BytesReceived:N0} / {total:N0} bytes"
+                    : $"{value.BytesReceived:N0} bytes";
+            });
+            await _localWhisperModelStore.DownloadAsync(SelectedLocalWhisperModel, progress);
+            RefreshLocalModelStatus();
+        }
+        catch (OperationCanceledException) { LocalModelStatus = "Download cancelled"; }
+        catch (Exception exception) { LocalModelStatus = LocalWhisperModelStore.ConciseFailure(exception); }
+    }
+
+    private void OnModelDownloadDiagnosticAvailable(object? sender, ModelDownloadDiagnostic diagnostic) =>
+        Dispatcher.UIThread.Post(() => LocalModelDownloadDiagnostics = diagnostic.ToString());
+
+    [RelayCommand]
+    private void RemoveLocalWhisperModel()
+    {
+        _localWhisperModelStore.Remove(SelectedLocalWhisperModel);
+        RefreshLocalModelStatus();
+    }
+
+    private void RefreshLocalModelStatus()
+    {
+        LocalModelStatus = _localWhisperModelStore.IsInstalled(SelectedLocalWhisperModel) ? "Installed" : "Missing";
+        LocalModelDownloadProgress = _localWhisperModelStore.IsInstalled(SelectedLocalWhisperModel) ? 1 : 0;
+        IsLocalModelDownloadIndeterminate = false;
+        LocalModelDownloadProgressText = null;
+    }
+
+    private void RefreshLocalBackendStatus()
+    {
+        var capability = new WhisperComputeCapabilityService().Detect();
+        LocalWhisperBackendStatus = SelectedLocalWhisperCompute switch
+        {
+            LocalWhisperCompute.Cpu => "CPU",
+            LocalWhisperCompute.Gpu when capability.CudaAvailable => "GPU - NVIDIA CUDA 12 candidate",
+            LocalWhisperCompute.Gpu => $"GPU unavailable - {capability.FailureReason}",
+            _ when capability.CudaAvailable => "Auto - NVIDIA CUDA 12 candidate",
+            _ => $"Auto - CPU fallback ({capability.FailureReason})",
+        };
+    }
+
+    private ApplicationSettings BuildApplicationSettings() => new()
+    {
+        RecordingDeviceId = SelectedRecordingDevice?.Id,
+        RecordingDeviceName = SelectedRecordingDevice?.Name,
+        MicrophoneEnabled = MicrophoneEnabled,
+        DeveloperMode = DeveloperMode,
+        VoiceProvider = SelectedVoiceProvider,
+        LocalWhisperModel = SelectedLocalWhisperModel,
+        LocalWhisperCompute = SelectedLocalWhisperCompute,
+        OpenAiTranscriptionModel = SelectedOpenAiModel,
+        CustomTranscriptionEndpoint = CustomTranscriptionEndpoint,
+        CustomTranscriptionModel = CustomTranscriptionModel,
+        HasOpenAiApiKey = _voiceSecretStore.Exists("openai") || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OPENAI_API_KEY")),
+        HasCustomApiKey = _voiceSecretStore.Exists("custom"),
+    };
+
+    private void ApplyVoiceSettings(ApplicationSettings settings)
+    {
+        SelectedVoiceProvider = settings.VoiceProvider;
+        SelectedLocalWhisperModel = settings.LocalWhisperModel;
+        SelectedLocalWhisperCompute = settings.LocalWhisperCompute;
+        SelectedOpenAiModel = settings.OpenAiTranscriptionModel;
+        CustomTranscriptionEndpoint = settings.CustomTranscriptionEndpoint;
+        CustomTranscriptionModel = settings.CustomTranscriptionModel;
+        RefreshLocalModelStatus();
     }
 
     [RelayCommand]
@@ -1760,6 +1982,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var settings = _settingsStore.Load();
         DeveloperMode = settings.DeveloperMode;
         MicrophoneEnabled = settings.MicrophoneEnabled;
+        ApplyVoiceSettings(settings);
+        if (_speechRecognitionService is SpeechTranscriptionProviderRouter router)
+            ObserveVoiceTask(router.ConfigureAsync(settings), "Load transcription provider settings");
         RefreshRecordingDevices(settings.RecordingDeviceId, settings.RecordingDeviceName);
     }
 
@@ -1813,7 +2038,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     private void RebuildVoiceCommandParser() => _voiceCommandParser = new VoiceCommandParser(
-        _lootRun.Definitions, KortzMapCatalog.Maps, SecurityCameras.Select(camera => camera.ToDomain()));
+        _lootRun.Definitions, KortzMapCatalog.Maps, SecurityCameras.Select(camera => camera.ToDomain()),
+        SecurityGuards.Select(guard => guard.ToDomain()));
 
     private void OnLootMarkerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -1898,6 +2124,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _speechRecognitionService.PartialTranscriptChanged -= OnPartialTranscriptChanged;
         _speechRecognitionService.RecognitionFailed -= OnRecognitionFailed;
         _audioCaptureService.FrameCaptured -= OnAudioFrameCaptured;
+        _localWhisperModelStore.DiagnosticAvailable -= OnModelDownloadDiagnosticAvailable;
         _speechRecognitionService.Dispose();
         _audioCaptureService.Dispose();
     }

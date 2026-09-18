@@ -1,6 +1,7 @@
 using GtaHeistPlanner.Core.Loot;
 using GtaHeistPlanner.Core.Maps;
 using GtaHeistPlanner.Core.Planning;
+using GtaHeistPlanner.Core.Security;
 using GtaHeistPlanner.Voice;
 
 namespace GtaHeistPlanner.Tests.Voice;
@@ -151,6 +152,52 @@ public sealed class VoiceCommandParserTests
         Assert.IsType<IncrementGuardsDownVoiceCommand>(Parse(phrase).Command);
 
     [Theory]
+    [InlineData("Front Desk")]
+    [InlineData("front desk")]
+    [InlineData("Front Desk down")]
+    [InlineData("I got Front Desk")]
+    [InlineData("Front Desk is down")]
+    [InlineData("just took out Front Desk")]
+    [InlineData("that's Front-Desk dealt with!")]
+    public void NamedGuardAliasMatchesAsWholePhraseAnywhere(string phrase)
+    {
+        var guard = Guard("front-desk", "lower-floor", "Front Desk Guard", ["Front Desk"]);
+        var command = Assert.IsType<DisableNamedGuardVoiceCommand>(new VoiceCommandParser(
+            [WestPainting], guards: [guard]).Parse(phrase, new(), PlannerStage.HeistActivity).Command);
+        Assert.Equal("front-desk", command.GuardId);
+    }
+
+    [Fact]
+    public void NamedGuardRequiresWholePhraseAndRelevantInteriorStage()
+    {
+        var guard = Guard("rail", "upper-floor", "Rail Guard", ["Rail"]);
+        var parser = new VoiceCommandParser([WestPainting], guards: [guard]);
+
+        Assert.Null(parser.Parse("railing is clear", new(), PlannerStage.HeistActivity).Command);
+        Assert.Null(parser.Parse("rail", new(), PlannerStage.HeistInfiltration).Command);
+        Assert.Equal("rail", Assert.IsType<DisableNamedGuardVoiceCommand>(parser.Parse(
+            "okay rail", new(), PlannerStage.HeistActivity).Command).GuardId);
+    }
+
+    [Fact]
+    public void UnnamedGuardsAreIgnoredAndDuplicateAliasesAreAmbiguous()
+    {
+        var unnamed = Guard("main-floor-guard-01", "main-floor", "main-floor-guard-01", []);
+        var first = Guard("desk-a", "main-floor", "First", ["Desk"]);
+        var second = Guard("desk-b", "lower-floor", "Second", ["Desk"]);
+        var parser = new VoiceCommandParser([WestPainting], guards: [unnamed, first, second]);
+
+        Assert.Null(parser.Parse("main floor guard 01", new(), PlannerStage.HeistActivity).Command);
+        var ambiguity = parser.Parse("desk down", new(), PlannerStage.HeistActivity);
+        Assert.Equal(VoiceParseDisposition.Rejected, ambiguity.Disposition);
+        Assert.Contains("desk-a", ambiguity.Error);
+        Assert.Contains("desk-b", ambiguity.Error);
+    }
+
+    private static SecurityGuardDefinition Guard(string id, string mapId, string name, IReadOnlyList<string> aliases) =>
+        new(id, mapId, name, .5, .5, []) { VoiceAliases = aliases };
+
+    [Theory]
     [InlineData("camera down")]
     [InlineData("camera disabled")]
     [InlineData("disabled camera")]
@@ -167,9 +214,24 @@ public sealed class VoiceCommandParserTests
         var parser = new VoiceCommandParser([WestPainting], KortzMapCatalog.Maps, [camera]);
 
         Assert.Equal("showroom", Assert.IsType<DisableNamedCameraVoiceCommand>(parser.Parse(
-            "Showroom Camera disabled!", new(), PlannerStage.HeistInfiltration).Command).CameraId);
+            "I got Showroom Camera!", new(), PlannerStage.HeistActivity).Command).CameraId);
         Assert.IsType<DisableShowroomByButtonVoiceCommand>(parser.Parse(
             "shot the button", new(), PlannerStage.HeistInfiltration).Command);
+    }
+
+    [Fact]
+    public void NamedCameraMatchingUsesStageVisibleMapCategory()
+    {
+        var exterior = new SecurityCameraDefinition("west-gate", "exterior-firstfloor", "West Gate Camera", .5, .5, 0, 60, .2);
+        var interior = new SecurityCameraDefinition("showroom", "main-floor", "Showroom Camera", .5, .5, 0, 60, .2);
+        var parser = new VoiceCommandParser([WestPainting], KortzMapCatalog.Maps, [exterior, interior]);
+
+        Assert.Equal("west-gate", Assert.IsType<DisableNamedCameraVoiceCommand>(parser.Parse(
+            "I got West Gate Camera", new(), PlannerStage.HeistInfiltration).Command).CameraId);
+        Assert.Null(parser.Parse("Showroom Camera down", new(), PlannerStage.HeistInfiltration).Command);
+        Assert.Equal("showroom", Assert.IsType<DisableNamedCameraVoiceCommand>(parser.Parse(
+            "Showroom Camera", new(), PlannerStage.HeistActivity).Command).CameraId);
+        Assert.Null(parser.Parse("West Gate Camera down", new(), PlannerStage.HeistActivity).Command);
     }
 
     [Fact]

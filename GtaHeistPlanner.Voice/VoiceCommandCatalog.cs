@@ -13,8 +13,9 @@ public static class VoiceCommandCatalog
 {
     public static readonly VoiceCommandDefinition GuardDown = new("Guard down", "Guards", [PlannerStage.HeistInfiltration],
         ["tango down", "guard down", "guard dropped", "dropped guard", "dropped a guard", "took out guard", "took out a guard", "guard neutralized"], "Tango down");
-    public static readonly VoiceCommandDefinition CameraDown = new("Camera down", "Cameras", [PlannerStage.HeistInfiltration],
-        ["camera down", "camera disabled", "disabled camera", "charlie down"], "Camera down");
+    public static readonly VoiceCommandDefinition CameraDown = new("Camera down", "Cameras",
+        [PlannerStage.HeistInfiltration, PlannerStage.HeistActivity],
+        ["camera down", "camera disabled", "disabled camera", "charlie down", "<camera name>"], "Camera down");
     public static readonly VoiceCommandDefinition ShowroomButton = new("Showroom disable button", "Cameras", [PlannerStage.HeistInfiltration],
         ["shot the button", "shoot the button", "camera button shot"], "Shot the button");
 

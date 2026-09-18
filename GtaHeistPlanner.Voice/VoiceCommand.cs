@@ -16,6 +16,7 @@ public sealed record ExitMapFocusVoiceCommand : VoiceCommand;
 public sealed record SetVaultCodeVoiceCommand(string? VaultCode) : VoiceCommand;
 public sealed record ChangeStageVoiceCommand(GtaHeistPlanner.Core.Planning.PlannerStage Stage, bool IsSkylightEntry = false) : VoiceCommand;
 public sealed record IncrementGuardsDownVoiceCommand : VoiceCommand;
+public sealed record DisableNamedGuardVoiceCommand(string GuardId, IReadOnlyList<string> CandidateIds) : VoiceCommand;
 public sealed record IncrementCamerasDownVoiceCommand : VoiceCommand;
 public sealed record DisableNamedCameraVoiceCommand(string CameraId) : VoiceCommand;
 public sealed record DisableShowroomByButtonVoiceCommand : VoiceCommand;

@@ -530,6 +530,7 @@
       "id": "main-floor-guard-01",
       "mapId": "main-floor",
       "name": "Tiger guard",
+      "voiceAliases": ["Tiger Statue"],
       "x": 0.8666096591026166,
       "y": 0.31070496083550914,
       "patrolIds": []
@@ -586,6 +587,7 @@
       "id": "lower-floor-guard-01",
       "mapId": "lower-floor",
       "name": "Front desk guard",
+      "voiceAliases": ["Front Desk"],
       "x": 0.22047089076495083,
       "y": 0.539341041859379,
       "patrolIds": []

@@ -10,6 +10,40 @@ namespace GtaHeistPlanner.Tests.Voice;
 public sealed class MainViewModelVoiceWorkflowTests
 {
     [Theory]
+    [InlineData("[BLANK AUDIO]")]
+    [InlineData(" [blank audio] ")]
+    [InlineData("   ")]
+    public void NonSpeechTranscriptNeverReachesNormalCommandPipeline(string transcript)
+    {
+        using var viewModel = CreateListeningViewModel();
+        var feedback = viewModel.CurrentVoiceFeedback;
+
+        viewModel.ProcessRecognizedText(transcript);
+
+        Assert.Null(viewModel.LastRecognizedText);
+        Assert.Null(viewModel.LastParsedVoiceCommand);
+        Assert.Same(feedback, viewModel.CurrentVoiceFeedback);
+        Assert.Empty(viewModel.VoiceTranscript);
+        Assert.Contains("ignored", viewModel.VoiceStartupDiagnostics, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RecentVoiceHistoryRetainsOnlyNewestSevenMeaningfulEntries()
+    {
+        using var viewModel = CreateListeningViewModel();
+        for (var index = 1; index <= 8; index++)
+            viewModel.ProcessRecognizedText($"meaningful unknown phrase {index}");
+
+        Assert.Equal(7, viewModel.VoiceTranscript.Count);
+        Assert.DoesNotContain(viewModel.VoiceTranscript, entry => entry.Text.EndsWith("1", StringComparison.Ordinal));
+        Assert.Equal("meaningful unknown phrase 8", viewModel.VoiceTranscript[^1].Text);
+
+        viewModel.ProcessRecognizedText("[BLANK AUDIO]");
+        Assert.Equal(7, viewModel.VoiceTranscript.Count);
+        Assert.Equal("meaningful unknown phrase 8", viewModel.VoiceTranscript[^1].Text);
+    }
+
+    [Theory]
     [InlineData("118 thousand", "500", 118500)]
     [InlineData("34 thousand", "five hundred", 34500)]
     [InlineData("105 thousand", "seven hundred fifty", 105750)]
@@ -205,6 +239,39 @@ public sealed class MainViewModelVoiceWorkflowTests
         Assert.Equal(0, viewModel.CamerasDown);
     }
 
+    [Theory]
+    [InlineData("camera down")]
+    [InlineData("charlie down")]
+    [InlineData("camera disabled")]
+    [InlineData("disabled camera")]
+    public void GenericCameraAliasesWorkDuringInfiltration(string phrase)
+    {
+        using var viewModel = CreateListeningViewModel();
+        viewModel.ProcessRecognizedText("start infiltration");
+
+        viewModel.ProcessRecognizedText(phrase);
+
+        Assert.Equal(1, viewModel.CamerasDown);
+        Assert.DoesNotContain("available during", viewModel.VoiceCommandError ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        viewModel.ProcessRecognizedText("undo");
+        Assert.Equal(0, viewModel.CamerasDown);
+    }
+
+    [Fact]
+    public void CameraTakedownAndGuideRemainAvailableDuringHeistActivity()
+    {
+        using var viewModel = CreateListeningViewModel();
+        viewModel.ProcessRecognizedText("start infiltration");
+        viewModel.ProcessRecognizedText("using access codes");
+
+        viewModel.ProcessRecognizedText("camera down");
+
+        Assert.Equal(PlannerStage.HeistActivity, viewModel.CurrentStage);
+        Assert.Equal(1, viewModel.CamerasDown);
+        Assert.Contains(viewModel.CurrentVoiceGuideGroups.SelectMany(group => group.Phrases),
+            phrase => string.Equals(phrase, "camera down", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void NamedAndShowroomCameraDisablesAreIdempotentAndCountCorrectly()
     {
@@ -215,6 +282,7 @@ public sealed class MainViewModelVoiceWorkflowTests
         Assert.False(viewModel.SecurityCameras.Single(camera => camera.Id == "main-floor-camera-03").IsActive);
         Assert.Equal(1, viewModel.TotalDisabledCameras);
         Assert.Equal(0, viewModel.CountedCameraTakedowns);
+        viewModel.ProcessRecognizedText("using access codes");
 
         viewModel.ProcessRecognizedText("backstage camera down");
         viewModel.ProcessRecognizedText("backstage camera down");
@@ -239,6 +307,7 @@ public sealed class MainViewModelVoiceWorkflowTests
         {
             source.ProcessRecognizedText("start infiltration");
             source.ProcessRecognizedText("shot the button");
+            source.ProcessRecognizedText("using access codes");
             source.ProcessRecognizedText("backstage camera down");
             source.SaveHeistCommand.Execute(null);
         }
@@ -269,6 +338,29 @@ public sealed class MainViewModelVoiceWorkflowTests
         viewModel.ProcessRecognizedText("undo");
         Assert.True(showroom.IsActive);
         Assert.Equal(0, viewModel.CountedCameraTakedowns);
+    }
+
+    [Fact]
+    public void NamedGuardIsIdempotentCountedAndUndoable()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var guard = viewModel.SecurityGuards.Single(item => item.Id == "lower-floor-guard-01");
+        viewModel.ProcessRecognizedText("start infiltration");
+        viewModel.ProcessRecognizedText("using access codes");
+
+        viewModel.ProcessRecognizedText("I got Front Desk");
+        Assert.False(guard.IsActive);
+        Assert.Equal(1, viewModel.GuardsDown);
+        Assert.Contains("Front desk guard", viewModel.CurrentVoiceFeedback!.Message, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.ProcessRecognizedText("Front Desk is down");
+        Assert.False(guard.IsActive);
+        Assert.Equal(1, viewModel.GuardsDown);
+        Assert.Contains("already down", viewModel.CurrentVoiceFeedback!.Message, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.ProcessRecognizedText("undo");
+        Assert.True(guard.IsActive);
+        Assert.Equal(0, viewModel.GuardsDown);
     }
 
     [Fact]

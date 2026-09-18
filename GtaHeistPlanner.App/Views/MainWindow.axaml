@@ -253,6 +253,8 @@
                     <TextBlock Text="{Binding VoiceCommandError, StringFormat='Error: {0}'}" FontSize="10" Foreground="#FFB8B8" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding VoiceStartupDiagnostics}" FontFamily="Consolas" FontSize="9"
                                Foreground="#98A4B3" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LocalModelDownloadDiagnostics}" FontFamily="Consolas" FontSize="9"
+                               Foreground="#98A4B3" TextWrapping="Wrap" />
                     <TextBox Text="{Binding VoiceSimulatorText}" PlaceholderText="scope out" />
                     <Button Content="Simulate recognized text" Command="{Binding SimulateRecognizedTextCommand}" />
                     <TextBlock Text="{Binding SaveStatus}" FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
@@ -408,15 +410,65 @@
     </Border>
 
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsSettingsOpen}" ZIndex="100">
-      <Border Width="480" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+      <Border Width="520" MaxHeight="760" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"
               Background="#1C232D" BorderBrush="#465364" BorderThickness="1" CornerRadius="10">
-        <StackPanel Spacing="12">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Spacing="12">
           <TextBlock Text="SETTINGS" FontSize="20" FontWeight="Bold" Foreground="#F3C969" />
           <TextBlock Text="Recording device" FontWeight="SemiBold" />
           <ComboBox ItemsSource="{Binding RecordingDevices}" SelectedItem="{Binding SelectedRecordingDevice}">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="models:RecordingDeviceInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
           </ComboBox>
           <CheckBox Content="Microphone enabled" IsChecked="{Binding MicrophoneEnabled}" />
+          <Separator Margin="0,4" />
+          <TextBlock Text="VOICE RECOGNITION" FontWeight="SemiBold" Foreground="#75CFF4" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <RadioButton Content="Local Whisper" GroupName="VoiceProvider" IsChecked="{Binding UseLocalWhisper}" />
+            <RadioButton Content="OpenAI" GroupName="VoiceProvider" IsChecked="{Binding UseOpenAi}" />
+            <RadioButton Content="Custom / compatible" GroupName="VoiceProvider" IsChecked="{Binding UseCustomTranscription}" />
+          </StackPanel>
+
+          <Border Padding="10" Background="#11151B" CornerRadius="6" IsVisible="{Binding UseLocalWhisper}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="Local Whisper (recommended, offline)" FontWeight="SemiBold" />
+              <TextBlock Text="Model" FontSize="10" Foreground="#98A4B3" />
+              <ComboBox ItemsSource="{Binding LocalWhisperModels}" SelectedItem="{Binding SelectedLocalWhisperModel}" />
+              <TextBlock Text="Compute" FontSize="10" Foreground="#98A4B3" />
+              <ComboBox ItemsSource="{Binding LocalWhisperComputeOptions}" SelectedItem="{Binding SelectedLocalWhisperCompute}" />
+              <TextBlock Text="{Binding LocalWhisperBackendStatus, StringFormat='Active backend: {0}'}"
+                         FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding LocalModelStatus, StringFormat='Model status: {0}'}" />
+              <ProgressBar Minimum="0" Maximum="1" Value="{Binding LocalModelDownloadProgress}"
+                           IsIndeterminate="{Binding IsLocalModelDownloadIndeterminate}" Height="5" />
+              <TextBlock Text="{Binding LocalModelDownloadProgressText}" FontSize="10" Foreground="#98A4B3" />
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                <Button Content="Download model" Command="{Binding DownloadLocalWhisperModelCommand}" />
+                <Button Grid.Column="1" Content="Remove model" Command="{Binding RemoveLocalWhisperModelCommand}" />
+                <Button Grid.Column="2" Content="Test" Command="{Binding TestVoiceProviderCommand}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Padding="10" Background="#11151B" CornerRadius="6" IsVisible="{Binding UseOpenAi}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="OpenAI realtime transcription" FontWeight="SemiBold" />
+              <ComboBox ItemsSource="{Binding OpenAiTranscriptionModels}" SelectedItem="{Binding SelectedOpenAiModel}" />
+              <TextBox Text="{Binding OpenAiApiKeyInput}" PasswordChar="*" PlaceholderText="API key (leave blank to keep saved key)" />
+              <Button Content="Test configuration" Command="{Binding TestVoiceProviderCommand}" />
+            </StackPanel>
+          </Border>
+
+          <Border Padding="10" Background="#11151B" CornerRadius="6" IsVisible="{Binding UseCustomTranscription}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="Custom / OpenAI-compatible (Advanced)" FontWeight="SemiBold" />
+              <TextBox Text="{Binding CustomTranscriptionEndpoint}" PlaceholderText="Base URL, e.g. http://localhost:8000/v1/" />
+              <TextBox Text="{Binding CustomTranscriptionModel}" PlaceholderText="Model" />
+              <TextBox Text="{Binding CustomApiKeyInput}" PasswordChar="*" PlaceholderText="Optional API key" />
+              <TextBlock Text="Requires an OpenAI-compatible POST /audio/transcriptions response with a text field."
+                         FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+              <Button Content="Test connection" Command="{Binding TestVoiceProviderCommand}" />
+            </StackPanel>
+          </Border>
+          <TextBlock Text="{Binding VoiceProviderTestStatus}" FontSize="11" Foreground="#F3C969" TextWrapping="Wrap" />
           <Separator Margin="0,4" /><TextBlock Text="Developer" FontWeight="SemiBold" />
           <CheckBox Content="Developer Mode" IsChecked="{Binding DeveloperMode}" />
           <TextBlock Text="Shows authoring, calibration, and debug controls." FontSize="11" Foreground="#98A4B3" />
@@ -425,7 +477,7 @@
             <Button Content="Cancel" Command="{Binding CloseSettingsCommand}" />
             <Button Grid.Column="1" Content="Save" Command="{Binding SaveSettingsCommand}" />
           </Grid>
-        </StackPanel>
+        </StackPanel></ScrollViewer>
       </Border>
     </Border>
 

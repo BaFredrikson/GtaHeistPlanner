@@ -13,5 +13,6 @@ public partial class SecurityGuardViewModel(SecurityGuardDefinition definition) 
     [ObservableProperty] public partial double Y { get; set; } = definition.Y;
     [ObservableProperty] public partial bool IsActive { get; set; } = true;
     public ObservableCollection<string> PatrolIds { get; } = new(definition.PatrolIds);
-    public SecurityGuardDefinition ToDomain() => new(Id, MapId, Name, X, Y, PatrolIds.ToList());
+    public IReadOnlyList<string> VoiceAliases { get; } = definition.VoiceAliases;
+    public SecurityGuardDefinition ToDomain() => new(Id, MapId, Name, X, Y, PatrolIds.ToList()) { VoiceAliases = VoiceAliases };
 }
