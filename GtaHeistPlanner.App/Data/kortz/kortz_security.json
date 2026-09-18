@@ -908,5 +908,55 @@
         }
       ]
     }
+  ],
+  "interactionMarkers": [
+    {
+      "id": "exterior-firstfloor-sewerentrance-01",
+      "mapId": "exterior-firstfloor",
+      "type": 0,
+      "x": 0.2767722488990372,
+      "y": 0.754183564181907,
+      "displayName": "Sewer Entrance"
+    },
+    {
+      "id": "exterior-rooftop-rappel-01",
+      "mapId": "exterior-rooftop",
+      "type": 1,
+      "x": 0.6767957623540494,
+      "y": 0.6409774436090225,
+      "displayName": "Rappel"
+    },
+    {
+      "id": "exterior-firstfloor-keycard-01",
+      "mapId": "exterior-firstfloor",
+      "type": 3,
+      "x": 0.779167796610305,
+      "y": 0.6712936867702929,
+      "displayName": "Keycard"
+    },
+    {
+      "id": "upper-floor-elevator-01",
+      "mapId": "upper-floor",
+      "type": 2,
+      "x": 0.3074703387555699,
+      "y": 0.23684210526315788,
+      "displayName": "Elevator"
+    },
+    {
+      "id": "main-floor-elevator-01",
+      "mapId": "main-floor",
+      "type": 2,
+      "x": 0.3074703387555699,
+      "y": 0.2387218045112782,
+      "displayName": "Elevator"
+    },
+    {
+      "id": "basement-elevator-01",
+      "mapId": "basement",
+      "type": 2,
+      "x": 0.02740264360976868,
+      "y": 0.16729323308270677,
+      "displayName": "Elevator"
+    }
   ]
 }

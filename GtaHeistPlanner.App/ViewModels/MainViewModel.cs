@@ -59,6 +59,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowManualCameras))]
     [NotifyPropertyChangedFor(nameof(ShowManualGuards))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsInteractionEditorVisible))]
     [NotifyPropertyChangedFor(nameof(CurrentMapCameras))]
     [NotifyPropertyChangedFor(nameof(CurrentMapGuards))]
     [NotifyPropertyChangedFor(nameof(CurrentMapPatrols))]
@@ -87,6 +88,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowManualCameras))]
     [NotifyPropertyChangedFor(nameof(ShowManualGuards))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsInteractionEditorVisible))]
     [NotifyPropertyChangedFor(nameof(SelectedStageOption))]
     [NotifyPropertyChangedFor(nameof(IsPlanningStage))]
     [NotifyPropertyChangedFor(nameof(IsMapStage))]
@@ -107,6 +109,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsLootAuthoringEnabled))]
     [NotifyPropertyChangedFor(nameof(ShowDeveloperCalibration))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsInteractionEditorVisible))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
     [ObservableProperty]
@@ -133,6 +136,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string? SewerExitPathId { get; set; }
     [ObservableProperty] public partial bool IsSewerRouteComplete { get; set; }
     [ObservableProperty] public partial SecurityEditorTool SecurityEditorTool { get; set; }
+    [ObservableProperty] public partial bool ShowInteractionMarkers { get; set; } = true;
+    [ObservableProperty] public partial MapInteractionMarkerViewModel? SelectedInteractionMarker { get; set; }
     [ObservableProperty] public partial SecurityCameraViewModel? SelectedSecurityCamera { get; set; }
     [ObservableProperty] public partial SecurityGuardViewModel? SelectedSecurityGuard { get; set; }
     [ObservableProperty] public partial SecurityPatrolViewModel? SelectedSecurityPatrol { get; set; }
@@ -183,9 +188,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<SecurityCameraViewModel> SecurityCameras { get; } = [];
     public ObservableCollection<SecurityGuardViewModel> SecurityGuards { get; } = [];
     public ObservableCollection<SecurityPatrolViewModel> SecurityPatrols { get; } = [];
+    public ObservableCollection<MapInteractionMarkerViewModel> InteractionMarkers { get; } = [];
     public ObservableCollection<MapCardViewModel> VisibleMapCards { get; } = [];
     public ObservableCollection<PatrolAssignmentViewModel> SelectedGuardPatrolAssignments { get; } = [];
     public IReadOnlyList<SecurityEditorTool> SecurityEditorTools { get; } = Enum.GetValues<SecurityEditorTool>();
+    public IReadOnlyList<SecurityEditorTool> InteractionEditorTools { get; } =
+    [
+        SecurityEditorTool.Select, SecurityEditorTool.SewerEntrance, SecurityEditorTool.Rappel,
+        SecurityEditorTool.Elevator, SecurityEditorTool.Keycard,
+    ];
     public IReadOnlyList<PlayerCountOption> PlayerCountOptions { get; } =
     [
         new(1, "Solo"), new(2, "2"), new(3, "3"), new(4, "4"),
@@ -268,6 +279,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool ShowManualCameras => CurrentPolicy.AllowsOverlay(
         SelectedMap.Category == MapCategory.Exterior ? OverlayType.ExteriorCameras : OverlayType.InteriorCameras, SelectedMap.Id);
     public bool IsSecurityEditorVisible => DeveloperViewPolicy.CanAuthorSecurity(DeveloperMode, CurrentStage);
+    public bool IsInteractionEditorVisible => DeveloperViewPolicy.CanAuthorInteractionMarkers(
+        DeveloperMode, CurrentPolicy, SelectedMap.Id);
     public IEnumerable<SecurityCameraViewModel> CurrentMapCameras => SecurityCameras.Where(item => item.MapId == SelectedMap.Id);
     public IEnumerable<SecurityGuardViewModel> CurrentMapGuards => SecurityGuards.Where(item => item.MapId == SelectedMap.Id);
     public IEnumerable<SecurityPatrolViewModel> CurrentMapPatrols => SecurityPatrols.Where(item => item.MapId == SelectedMap.Id);
@@ -398,6 +411,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SelectedSecurityCamera = null;
         SelectedSecurityGuard = null;
         SelectedSecurityPatrol = null;
+        SelectedInteractionMarker = null;
         SelectedPatrolWaypointIndex = -1;
         SaveStatus = null;
     }
@@ -1357,6 +1371,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             model.PropertyChanged += OnSecurityObjectChanged;
             SecurityPatrols.Add(model);
         }
+        foreach (var marker in dataset.Markers)
+        {
+            var model = new MapInteractionMarkerViewModel(marker);
+            model.PropertyChanged += OnSecurityObjectChanged;
+            InteractionMarkers.Add(model);
+        }
         SecurityRevision++;
         RebuildVoiceCommandParser();
     }
@@ -1364,7 +1384,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void PlaceSecurityObject(MapPoint point)
     {
-        if (!IsSecurityEditorVisible) return;
+        if (!IsSecurityEditorVisible && !IsInteractionEditorVisible) return;
         if (SecurityEditorTool == SecurityEditorTool.Camera)
         {
             var id = NextSecurityId("camera", SecurityCameras.Select(item => item.Id));
@@ -1387,6 +1407,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             SelectedSecurityPatrol.Waypoints.Add(new PatrolWaypoint(point.X, point.Y));
         }
+        else if (TryGetInteractionType(SecurityEditorTool, out var markerType))
+        {
+            var definition = MapInteractionMarkerFactory.Create(markerType, SelectedMap.Id, point.X, point.Y,
+                InteractionMarkers.Select(item => item.Id));
+            var marker = new MapInteractionMarkerViewModel(definition);
+            marker.PropertyChanged += OnSecurityObjectChanged;
+            InteractionMarkers.Add(marker);
+            SelectedInteractionMarker = marker;
+            SelectedSecurityCamera = null;
+            SelectedSecurityGuard = null;
+        }
         RefreshSecurityMapCollections();
         SecurityRevision++;
         SecurityStatus = "Unsaved security changes.";
@@ -1395,11 +1426,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void MoveSecurityObject(SecurityMarkerMove move)
     {
-        if (!IsSecurityEditorVisible) return;
+        if (!IsSecurityEditorVisible && !IsInteractionEditorVisible) return;
         if (move.Kind == "camera" && SecurityCameras.FirstOrDefault(item => item.Id == move.Id) is { } camera)
         { camera.X = move.X; camera.Y = move.Y; }
         if (move.Kind == "guard" && SecurityGuards.FirstOrDefault(item => item.Id == move.Id) is { } guard)
         { guard.X = move.X; guard.Y = move.Y; }
+        if (move.Kind == "interaction" && InteractionMarkers.FirstOrDefault(item => item.Id == move.Id) is { } marker)
+        { marker.X = move.X; marker.Y = move.Y; }
         SecurityRevision++;
     }
 
@@ -1417,6 +1450,25 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (!IsSecurityEditorVisible) return;
         SelectedSecurityGuard = SecurityGuards.FirstOrDefault(item => item.Id == id);
         SelectedSecurityCamera = null;
+    }
+
+    [RelayCommand]
+    private void SelectInteractionMarker(string id)
+    {
+        if (!IsInteractionEditorVisible) return;
+        SelectedInteractionMarker = InteractionMarkers.FirstOrDefault(item => item.Id == id);
+        SelectedSecurityCamera = null;
+        SelectedSecurityGuard = null;
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedInteractionMarker()
+    {
+        if (!IsInteractionEditorVisible || SelectedInteractionMarker is null) return;
+        InteractionMarkers.Remove(SelectedInteractionMarker);
+        SelectedInteractionMarker = null;
+        SecurityRevision++;
+        SecurityStatus = "Unsaved interaction marker changes.";
     }
 
     [RelayCommand]
@@ -1468,7 +1520,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void SaveSecurityDataset()
     {
-        if (!IsSecurityEditorVisible) return;
+        if (!IsSecurityEditorVisible && !IsInteractionEditorVisible) return;
         if (SelectedSecurityGuard is not null)
             OnSelectedSecurityGuardChanged(SelectedSecurityGuard, SelectedSecurityGuard);
         try
@@ -1476,10 +1528,25 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _securityDatasetStore.Save(new(
                 SecurityCameras.Select(item => item.ToDomain()).ToList(),
                 SecurityGuards.Select(item => item.ToDomain()).ToList(),
-                SecurityPatrols.Select(item => item.ToDomain()).ToList()));
+                SecurityPatrols.Select(item => item.ToDomain()).ToList(),
+                InteractionMarkers.Select(item => item.ToDomain()).ToList()));
             SecurityStatus = "Security dataset saved.";
         }
         catch (InvalidDataException exception) { SecurityStatus = exception.Message; }
+    }
+
+    private static bool TryGetInteractionType(SecurityEditorTool tool, out MapInteractionMarkerType type)
+    {
+        type = tool switch
+        {
+            SecurityEditorTool.SewerEntrance => MapInteractionMarkerType.SewerEntrance,
+            SecurityEditorTool.Rappel => MapInteractionMarkerType.Rappel,
+            SecurityEditorTool.Elevator => MapInteractionMarkerType.Elevator,
+            SecurityEditorTool.Keycard => MapInteractionMarkerType.Keycard,
+            _ => default,
+        };
+        return tool is SecurityEditorTool.SewerEntrance or SecurityEditorTool.Rappel
+            or SecurityEditorTool.Elevator or SecurityEditorTool.Keycard;
     }
 
     [RelayCommand]

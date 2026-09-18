@@ -31,16 +31,20 @@
               SelectLootCommand="{Binding SelectLootCommand}" />
           <controls:ManualSecurityOverlayControl Cameras="{Binding Owner.SecurityCameras}" Guards="{Binding Owner.SecurityGuards}"
               Patrols="{Binding Owner.SecurityPatrols}" MapId="{Binding Map.Id}"
-              IsHitTestVisible="{Binding IsSecurityEditMode}"
+              InteractionMarkers="{Binding Owner.InteractionMarkers}"
+              IsHitTestVisible="{Binding IsOverlayEditMode}"
               ViewportZoom="{Binding Viewport.Zoom}"
               MapAspectRatio="{Binding Map.AspectRatio}" ShowCameras="{Binding ShowCameras}"
               ShowGuards="{Binding ShowGuards}" IsEditMode="{Binding IsSecurityEditMode}"
+              ShowInteractionMarkers="{Binding ShowInteractionMarkers}" IsInteractionEditMode="{Binding IsInteractionEditMode}"
               SelectedCamera="{Binding Owner.SelectedSecurityCamera}" SelectedGuard="{Binding Owner.SelectedSecurityGuard}"
               SelectedPatrol="{Binding Owner.SelectedSecurityPatrol}" SelectedWaypointIndex="{Binding Owner.SelectedPatrolWaypointIndex}"
+              SelectedInteractionMarker="{Binding Owner.SelectedInteractionMarker}"
               Revision="{Binding Owner.SecurityRevision}" PlaceCommand="{Binding PlaceSecurityObjectCommand}"
               MoveCommand="{Binding MoveSecurityObjectCommand}" SelectCameraCommand="{Binding SelectSecurityCameraCommand}"
               SelectGuardCommand="{Binding SelectSecurityGuardCommand}" SelectWaypointCommand="{Binding SelectPatrolWaypointCommand}"
-              MoveWaypointCommand="{Binding MovePatrolWaypointCommand}" />
+              MoveWaypointCommand="{Binding MovePatrolWaypointCommand}"
+              SelectInteractionMarkerCommand="{Binding SelectInteractionMarkerCommand}" />
           <controls:SewerOverlayControl IsVisible="{Binding IsSewer}"
               Paths="{Binding Owner.SewerPaths}" HighlightedPathIds="{Binding Owner.HighlightedSewerPathIds}"
               MapAspectRatio="{Binding Map.AspectRatio}" Revision="{Binding Owner.SewerRevision}"

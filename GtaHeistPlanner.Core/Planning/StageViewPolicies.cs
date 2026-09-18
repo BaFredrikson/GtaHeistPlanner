@@ -23,13 +23,13 @@ public static class StageViewPolicies
     public static StageViewPolicy Get(PlannerStage stage) => stage switch
     {
         PlannerStage.Preparation => new(stage, LootMaps, LootVisibilityMode.AllClearly,
-            false, false, false, false, false),
+            false, false, false, false, false, false),
         PlannerStage.Planning => new(stage, LootMaps, LootVisibilityMode.ScopedOnly,
-            false, false, false, false, false),
+            false, false, false, false, false, true),
         PlannerStage.HeistInfiltration => new(stage, InfiltrationMaps, LootVisibilityMode.Hidden,
-            true, true, false, true, false),
+            true, true, false, true, false, true),
         PlannerStage.HeistActivity => new(stage, ActivityMaps, LootVisibilityMode.ScopedOnly,
-            false, false, true, false, true),
+            false, false, true, false, true, true),
         _ => throw new ArgumentOutOfRangeException(nameof(stage)),
     };
 }

@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using System.Diagnostics;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -23,6 +24,11 @@ public sealed class ManualSecurityOverlayControl : Control
     private static readonly SvgIconOverlayRenderer GuardIcon = new(
         new Uri("avares://GtaHeistPlanner.App/Assets/icons/security.svg"), 18, 13,
         Color.Parse("#FF4D4D"));
+    private static readonly IReadOnlyDictionary<MapInteractionMarkerType, IconOverlayRenderer> InteractionIcons =
+        Enum.GetValues<MapInteractionMarkerType>().ToDictionary(
+            type => type,
+            type => new IconOverlayRenderer(
+                new Uri($"avares://GtaHeistPlanner.App/Assets/icons/{MapInteractionMarkerIcons.FileName(type)}"), 22));
     private static readonly IBrush VisionBrush = new SolidColorBrush(Color.Parse("#354CBFEA"));
     private static readonly Pen VisionPen = new(new SolidColorBrush(Color.Parse("#AA55CFF4")), 1.2);
     private static readonly Pen PatrolPen = new(new SolidColorBrush(Color.Parse("#D8E6F3")), 2);
@@ -52,15 +58,19 @@ public sealed class ManualSecurityOverlayControl : Control
     public static readonly StyledProperty<IEnumerable<SecurityCameraViewModel>?> CamerasProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityCameraViewModel>?>(nameof(Cameras));
     public static readonly StyledProperty<IEnumerable<SecurityGuardViewModel>?> GuardsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityGuardViewModel>?>(nameof(Guards));
     public static readonly StyledProperty<IEnumerable<SecurityPatrolViewModel>?> PatrolsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<SecurityPatrolViewModel>?>(nameof(Patrols));
+    public static readonly StyledProperty<IEnumerable<MapInteractionMarkerViewModel>?> InteractionMarkersProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, IEnumerable<MapInteractionMarkerViewModel>?>(nameof(InteractionMarkers));
     public static readonly StyledProperty<string?> MapIdProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, string?>(nameof(MapId));
     public static readonly StyledProperty<double> MapAspectRatioProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, double>(nameof(MapAspectRatio), 1);
     public static readonly StyledProperty<double> ViewportZoomProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, double>(nameof(ViewportZoom), 1);
     public static readonly StyledProperty<bool> ShowCamerasProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(ShowCameras));
     public static readonly StyledProperty<bool> ShowGuardsProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(ShowGuards));
+    public static readonly StyledProperty<bool> ShowInteractionMarkersProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(ShowInteractionMarkers));
     public static readonly StyledProperty<bool> IsEditModeProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(IsEditMode));
+    public static readonly StyledProperty<bool> IsInteractionEditModeProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, bool>(nameof(IsInteractionEditMode));
     public static readonly StyledProperty<SecurityCameraViewModel?> SelectedCameraProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, SecurityCameraViewModel?>(nameof(SelectedCamera));
     public static readonly StyledProperty<SecurityGuardViewModel?> SelectedGuardProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, SecurityGuardViewModel?>(nameof(SelectedGuard));
     public static readonly StyledProperty<SecurityPatrolViewModel?> SelectedPatrolProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, SecurityPatrolViewModel?>(nameof(SelectedPatrol));
+    public static readonly StyledProperty<MapInteractionMarkerViewModel?> SelectedInteractionMarkerProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, MapInteractionMarkerViewModel?>(nameof(SelectedInteractionMarker));
     public static readonly StyledProperty<int> SelectedWaypointIndexProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, int>(nameof(SelectedWaypointIndex), -1);
     public static readonly StyledProperty<int> RevisionProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, int>(nameof(Revision));
     public static readonly StyledProperty<ICommand?> PlaceCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(PlaceCommand));
@@ -69,24 +79,29 @@ public sealed class ManualSecurityOverlayControl : Control
     public static readonly StyledProperty<ICommand?> SelectGuardCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(SelectGuardCommand));
     public static readonly StyledProperty<ICommand?> SelectWaypointCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(SelectWaypointCommand));
     public static readonly StyledProperty<ICommand?> MoveWaypointCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(MoveWaypointCommand));
+    public static readonly StyledProperty<ICommand?> SelectInteractionMarkerCommandProperty = AvaloniaProperty.Register<ManualSecurityOverlayControl, ICommand?>(nameof(SelectInteractionMarkerCommand));
 
     static ManualSecurityOverlayControl() => AffectsRender<ManualSecurityOverlayControl>(CamerasProperty, GuardsProperty,
-        PatrolsProperty, MapIdProperty, MapAspectRatioProperty, ViewportZoomProperty, ShowCamerasProperty, ShowGuardsProperty,
-        IsEditModeProperty, SelectedCameraProperty, SelectedGuardProperty, SelectedPatrolProperty,
+        PatrolsProperty, InteractionMarkersProperty, MapIdProperty, MapAspectRatioProperty, ViewportZoomProperty, ShowCamerasProperty, ShowGuardsProperty,
+        ShowInteractionMarkersProperty, IsEditModeProperty, IsInteractionEditModeProperty, SelectedCameraProperty, SelectedGuardProperty, SelectedPatrolProperty, SelectedInteractionMarkerProperty,
         SelectedWaypointIndexProperty, RevisionProperty);
 
     public IEnumerable<SecurityCameraViewModel>? Cameras { get => GetValue(CamerasProperty); set => SetValue(CamerasProperty, value); }
     public IEnumerable<SecurityGuardViewModel>? Guards { get => GetValue(GuardsProperty); set => SetValue(GuardsProperty, value); }
     public IEnumerable<SecurityPatrolViewModel>? Patrols { get => GetValue(PatrolsProperty); set => SetValue(PatrolsProperty, value); }
+    public IEnumerable<MapInteractionMarkerViewModel>? InteractionMarkers { get => GetValue(InteractionMarkersProperty); set => SetValue(InteractionMarkersProperty, value); }
     public string? MapId { get => GetValue(MapIdProperty); set => SetValue(MapIdProperty, value); }
     public double MapAspectRatio { get => GetValue(MapAspectRatioProperty); set => SetValue(MapAspectRatioProperty, value); }
     public double ViewportZoom { get => GetValue(ViewportZoomProperty); set => SetValue(ViewportZoomProperty, value); }
     public bool ShowCameras { get => GetValue(ShowCamerasProperty); set => SetValue(ShowCamerasProperty, value); }
     public bool ShowGuards { get => GetValue(ShowGuardsProperty); set => SetValue(ShowGuardsProperty, value); }
+    public bool ShowInteractionMarkers { get => GetValue(ShowInteractionMarkersProperty); set => SetValue(ShowInteractionMarkersProperty, value); }
     public bool IsEditMode { get => GetValue(IsEditModeProperty); set => SetValue(IsEditModeProperty, value); }
+    public bool IsInteractionEditMode { get => GetValue(IsInteractionEditModeProperty); set => SetValue(IsInteractionEditModeProperty, value); }
     public SecurityCameraViewModel? SelectedCamera { get => GetValue(SelectedCameraProperty); set => SetValue(SelectedCameraProperty, value); }
     public SecurityGuardViewModel? SelectedGuard { get => GetValue(SelectedGuardProperty); set => SetValue(SelectedGuardProperty, value); }
     public SecurityPatrolViewModel? SelectedPatrol { get => GetValue(SelectedPatrolProperty); set => SetValue(SelectedPatrolProperty, value); }
+    public MapInteractionMarkerViewModel? SelectedInteractionMarker { get => GetValue(SelectedInteractionMarkerProperty); set => SetValue(SelectedInteractionMarkerProperty, value); }
     public int SelectedWaypointIndex { get => GetValue(SelectedWaypointIndexProperty); set => SetValue(SelectedWaypointIndexProperty, value); }
     public int Revision { get => GetValue(RevisionProperty); set => SetValue(RevisionProperty, value); }
     public ICommand? PlaceCommand { get => GetValue(PlaceCommandProperty); set => SetValue(PlaceCommandProperty, value); }
@@ -95,6 +110,7 @@ public sealed class ManualSecurityOverlayControl : Control
     public ICommand? SelectGuardCommand { get => GetValue(SelectGuardCommandProperty); set => SetValue(SelectGuardCommandProperty, value); }
     public ICommand? SelectWaypointCommand { get => GetValue(SelectWaypointCommandProperty); set => SetValue(SelectWaypointCommandProperty, value); }
     public ICommand? MoveWaypointCommand { get => GetValue(MoveWaypointCommandProperty); set => SetValue(MoveWaypointCommandProperty, value); }
+    public ICommand? SelectInteractionMarkerCommand { get => GetValue(SelectInteractionMarkerCommandProperty); set => SetValue(SelectInteractionMarkerCommandProperty, value); }
 
     public override void Render(DrawingContext context)
     {
@@ -148,13 +164,41 @@ public sealed class ManualSecurityOverlayControl : Control
                 if (camera == SelectedCamera) context.DrawEllipse(null, MarkerPen(SelectedPen), center, 13 * markerScale, 13 * markerScale);
             }
         }
+        if (ShowInteractionMarkers || IsInteractionEditMode)
+        {
+            foreach (var marker in InteractionMarkers?.Where(item => item.MapId == MapId) ?? [])
+            {
+                var center = Screen(marker.X, marker.Y, rect);
+                InteractionIcons[marker.Type].Draw(context, center, visualScale: markerScale);
+                DrawMarkerLabel(context, marker.EffectiveDisplayName, center, markerScale);
+                if (marker == SelectedInteractionMarker)
+                    context.DrawEllipse(null, MarkerPen(SelectedPen), center, 14 * markerScale, 14 * markerScale);
+            }
+        }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
-        if (!IsEditMode || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if ((!IsEditMode && !IsInteractionEditMode) || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var point = e.GetPosition(this);
         var rect = MapRect();
+        if (IsInteractionEditMode)
+        {
+            var marker = InteractionMarkers?.Where(item => item.MapId == MapId)
+                .OrderBy(item => Distance(point, Screen(item.X, item.Y, rect)))
+                .FirstOrDefault(item => Distance(point, Screen(item.X, item.Y, rect)) <= 16 * MapViewportMath.FixedMarkerScale(ViewportZoom));
+            if (marker is not null)
+            {
+                SelectInteractionMarkerCommand?.Execute(marker.Id);
+                BeginDrag(e, "interaction", marker.Id);
+                return;
+            }
+            if (!IsEditMode)
+            {
+                if (Normalize(point, rect, out var interactionPoint)) PlaceCommand?.Execute(interactionPoint);
+                return;
+            }
+        }
         foreach (var patrol in Patrols?.Where(item => item.MapId == MapId) ?? [])
         {
             for (var index = 0; index < patrol.Waypoints.Count; index++)
@@ -187,7 +231,14 @@ public sealed class ManualSecurityOverlayControl : Control
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e) { _dragId = null; _dragKind = null; _dragWaypointIndex = -1; e.Pointer.Capture(null); }
-    private void BeginDrag(PointerPressedEventArgs e, string kind, string id) { if (!IsEditMode) return; _dragKind = kind; _dragId = id; e.Pointer.Capture(this); }
+    private void BeginDrag(PointerPressedEventArgs e, string kind, string id) { if (!IsEditMode && !IsInteractionEditMode) return; _dragKind = kind; _dragId = id; e.Pointer.Capture(this); }
+
+    private static void DrawMarkerLabel(DrawingContext context, string text, Point center, double markerScale)
+    {
+        var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            Typeface.Default, 10 * markerScale, Brushes.White);
+        context.DrawText(formatted, new Point(center.X - formatted.Width / 2, center.Y + 13 * markerScale));
+    }
     private Rect MapRect() { var width = Math.Min(Bounds.Width, Bounds.Height * MapAspectRatio); var height = width / MapAspectRatio; return new((Bounds.Width - width) / 2, (Bounds.Height - height) / 2, width, height); }
     private static Point Screen(double x, double y, Rect rect) => new(rect.X + x * rect.Width, rect.Y + y * rect.Height);
     private static bool Normalize(Point p, Rect rect, out MapPoint result) { if (!rect.Contains(p)) { result = default; return false; } result = new((p.X - rect.X) / rect.Width, (p.Y - rect.Y) / rect.Height); return true; }

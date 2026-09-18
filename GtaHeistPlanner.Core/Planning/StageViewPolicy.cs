@@ -8,7 +8,8 @@ public sealed record StageViewPolicy(
     bool ShowExteriorGuards,
     bool ShowInteriorGuards,
     bool ShowExteriorCameras,
-    bool ShowInteriorCameras)
+    bool ShowInteriorCameras,
+    bool ShowInteractionMarkers)
 {
     public bool AllowsMap(string mapId) => AllowedMapIds.Contains(mapId);
 
@@ -20,6 +21,7 @@ public sealed record StageViewPolicy(
         OverlayType.InteriorGuards => ShowInteriorGuards,
         OverlayType.ExteriorCameras => ShowExteriorCameras,
         OverlayType.InteriorCameras => ShowInteriorCameras,
+        OverlayType.InteractionMarkers => ShowInteractionMarkers,
         _ => false,
     };
 }

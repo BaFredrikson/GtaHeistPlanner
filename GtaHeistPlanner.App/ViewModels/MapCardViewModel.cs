@@ -27,8 +27,11 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
         Map.Category == MapCategory.Exterior ? OverlayType.ExteriorGuards : OverlayType.InteriorGuards, Map.Id);
     public bool ShowCameras => Owner.CurrentPolicy.AllowsOverlay(
         Map.Category == MapCategory.Exterior ? OverlayType.ExteriorCameras : OverlayType.InteriorCameras, Map.Id);
+    public bool ShowInteractionMarkers => Owner.CurrentPolicy.AllowsOverlay(OverlayType.InteractionMarkers, Map.Id) && Owner.ShowInteractionMarkers;
     public bool IsSecurityEditMode => Owner.DeveloperMode &&
         Owner.CurrentStage is PlannerStage.HeistInfiltration or PlannerStage.HeistActivity;
+    public bool IsInteractionEditMode => Owner.DeveloperMode && ShowInteractionMarkers;
+    public bool IsOverlayEditMode => IsSecurityEditMode || IsInteractionEditMode;
     public bool IsSewer => Map.Id == "sewer";
     public bool IsFocused => Owner.FocusedMapId == Map.Id;
     public string FocusGlyph => IsFocused ? "▣" : "⛶";
@@ -63,6 +66,7 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
     [RelayCommand] private void MoveSecurityObject(SecurityMarkerMove move) => Owner.MoveSecurityObjectCommand.Execute(move);
     [RelayCommand] private void SelectSecurityCamera(string id) { Owner.SelectedMap = Map; Owner.SelectSecurityCameraCommand.Execute(id); }
     [RelayCommand] private void SelectSecurityGuard(string id) { Owner.SelectedMap = Map; Owner.SelectSecurityGuardCommand.Execute(id); }
+    [RelayCommand] private void SelectInteractionMarker(string id) { Owner.SelectedMap = Map; Owner.SelectInteractionMarkerCommand.Execute(id); }
     [RelayCommand] private void SelectPatrolWaypoint(SecurityWaypointSelection selection) { Owner.SelectedMap = Map; Owner.SelectPatrolWaypointCommand.Execute(selection); }
     [RelayCommand] private void MovePatrolWaypoint(SecurityWaypointMove move) => Owner.MovePatrolWaypointCommand.Execute(move);
 
@@ -75,6 +79,9 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowGuards));
         OnPropertyChanged(nameof(ShowCameras));
         OnPropertyChanged(nameof(IsSecurityEditMode));
+        OnPropertyChanged(nameof(ShowInteractionMarkers));
+        OnPropertyChanged(nameof(IsInteractionEditMode));
+        OnPropertyChanged(nameof(IsOverlayEditMode));
         OnPropertyChanged(nameof(IsFocused));
         OnPropertyChanged(nameof(FocusGlyph));
     }

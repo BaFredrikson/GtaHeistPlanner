@@ -29,7 +29,8 @@ public static class SecurityDatasetJson
     {
         var allIds = dataset.Cameras.Select(item => item.Id)
             .Concat(dataset.Guards.Select(item => item.Id))
-            .Concat(dataset.Patrols.Select(item => item.Id)).ToList();
+            .Concat(dataset.Patrols.Select(item => item.Id))
+            .Concat(dataset.Markers.Select(item => item.Id)).ToList();
         if (allIds.Any(string.IsNullOrWhiteSpace) || allIds.Distinct(StringComparer.Ordinal).Count() != allIds.Count)
             throw new InvalidDataException("Security object IDs must be non-empty and globally unique.");
 
@@ -52,6 +53,8 @@ public static class SecurityDatasetJson
                 if (!patrols.TryGetValue(patrolId, out var patrol) || patrol.MapId != guard.MapId)
                     throw new InvalidDataException($"Guard '{guard.Id}' references missing or cross-map patrol '{patrolId}'.");
         }
+        foreach (var marker in dataset.Markers)
+            ValidatePoint(marker.MapId, marker.X, marker.Y, marker.Id);
     }
 
     private static void ValidatePoint(string mapId, double x, double y, string id)

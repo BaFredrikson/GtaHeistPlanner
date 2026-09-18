@@ -24,6 +24,14 @@
                       Link="Assets\icons\special_loot.png" />
     <AvaloniaResource Include="..\assets\icons\truckcargo.png"
                       Link="Assets\icons\truckcargo.png" />
+    <AvaloniaResource Include="..\assets\icons\sewer_entrance.png"
+                      Link="Assets\icons\sewer_entrance.png" />
+    <AvaloniaResource Include="..\assets\icons\rappel.png"
+                      Link="Assets\icons\rappel.png" />
+    <AvaloniaResource Include="..\assets\icons\elevator.png"
+                      Link="Assets\icons\elevator.png" />
+    <AvaloniaResource Include="..\assets\icons\keycard.png"
+                      Link="Assets\icons\keycard.png" />
     <AvaloniaResource Include="Data\kortz\kortz_loot_spawns.json" />
     <AvaloniaResource Include="Data\kortz\kortz_sewer_graph.json" />
     <AvaloniaResource Include="Data\kortz\kortz_security.json" />

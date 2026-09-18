@@ -230,6 +230,9 @@
                   </ItemsControl>
                 </StackPanel>
 
+                <CheckBox Content="Interaction points" IsChecked="{Binding ShowInteractionMarkers}"
+                          IsVisible="{Binding IsMapStage}" />
+
                 <StackPanel Spacing="7" IsVisible="{Binding DeveloperMode}">
                   <Separator Margin="0,8,0,3" /><TextBlock Text="DEVELOPER TOOLS" FontWeight="Bold" Foreground="#E8A65A" />
                   <StackPanel Spacing="5">
@@ -313,6 +316,16 @@
                     <Button Content="Save security JSON" Command="{Binding SaveSecurityDatasetCommand}" />
                     <TextBlock Text="{Binding SecurityStatus}" FontSize="10" Foreground="#FFB8B8" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding SecurityDataPath}" FontSize="9" Foreground="#687484" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Spacing="6" IsVisible="{Binding IsInteractionEditorVisible}">
+                    <Separator Margin="0,6" />
+                    <TextBlock Text="INTERACTION MARKERS" FontWeight="Bold" Foreground="#75CFF4" />
+                    <TextBlock Text="Choose a marker, click to place it, or drag an existing marker."
+                               FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+                    <ComboBox ItemsSource="{Binding InteractionEditorTools}" SelectedItem="{Binding SecurityEditorTool}" />
+                    <TextBox Text="{Binding SelectedInteractionMarker.DisplayName}" PlaceholderText="Optional marker label" />
+                    <Button Content="Remove selected marker" Command="{Binding RemoveSelectedInteractionMarkerCommand}" />
+                    <Button Content="Save authored map data" Command="{Binding SaveSecurityDatasetCommand}" />
                   </StackPanel>
                 </StackPanel>
 
