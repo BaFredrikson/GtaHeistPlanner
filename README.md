@@ -96,3 +96,42 @@ From the repository root:
 dotnet restore
 dotnet build
 dotnet test
+```
+Run the application with:
+```powershell
+dotnet run --project .\GtaHeistPlanner.App\GtaHeistPlanner.App.csproj
+```
+
+## Project Structure
+- `GtaHeistPlanner.App` — Avalonia desktop application
+- `GtaHeistPlanner.Core` — heist domain and planning logic
+- `GtaHeistPlanner.Voice` — speech recognition and voice-command infrastructure
+- `GtaHeistPlanner.Tests` — automated tests
+- `GtaHeistPlanner.DataExtractor` — research/data extraction utilities
+
+## Data and Privacy
+
+Local application state is stored under the user's local application data
+directory.
+
+Local Whisper speech recognition can run entirely on-device.
+
+OpenAI transcription is only used if explicitly selected and configured by the
+user.
+
+API keys and local user settings are not included in the repository or release
+packages.
+
+## Status
+
+Version 1.0.0 is the first stable release.
+
+The current version is focused specifically on the Kortz Center heist.
+
+## Disclaimer
+
+GtaHeistPlanner is an unofficial fan-made tool and is not affiliated with,
+endorsed by, or sponsored by Rockstar Games or Take-Two Interactive.
+
+Grand Theft Auto, GTA Online, and related names and assets are trademarks of
+their respective owners.
