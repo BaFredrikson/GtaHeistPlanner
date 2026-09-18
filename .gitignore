@@ -11,6 +11,11 @@ assets/*
 !assets/.gitkeep
 analysis/
 
+# Release / publish artifacts
+artifacts/
+publish/
+release/
+
 # User-specific files
 *.rsuser
 *.suo

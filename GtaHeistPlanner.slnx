@@ -2,6 +2,7 @@
   <Project Path="GtaHeistPlanner.App/GtaHeistPlanner.App.csproj" />
   <Project Path="GtaHeistPlanner.Core/GtaHeistPlanner.Core.csproj" />
   <Project Path="GtaHeistPlanner.DataExtractor/GtaHeistPlanner.DataExtractor.csproj" />
+  <Project Path="GtaHeistPlanner.Launcher/GtaHeistPlanner.Launcher.csproj" />
   <Project Path="GtaHeistPlanner.Tests/GtaHeistPlanner.Tests.csproj" />
   <Project Path="GtaHeistPlanner.Voice/GtaHeistPlanner.Voice.csproj" />
 </Solution>

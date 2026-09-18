@@ -450,7 +450,8 @@ public sealed class MainViewModelVoiceWorkflowTests
         if (Application.Current is null)
             AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
         path ??= TempSavePath();
-        var viewModel = new MainViewModel(new FakeSpeech(), new FakeCapture(), new HeistSessionStore(path));
+        var viewModel = new MainViewModel(new FakeSpeech(), new FakeCapture(), new HeistSessionStore(path),
+            new FakeWhisperCapabilities());
         viewModel.MicrophoneStatus = MicrophoneStatus.Listening;
         return viewModel;
     }
@@ -480,5 +481,10 @@ public sealed class MainViewModelVoiceWorkflowTests
         public void Start(string endpointId) { }
         public void Stop() { }
         public void Dispose() { }
+    }
+
+    private sealed class FakeWhisperCapabilities : IWhisperComputeCapabilityService
+    {
+        public WhisperComputeCapabilities Detect() => new(true, false, "CUDA probing is disabled in unit tests.");
     }
 }

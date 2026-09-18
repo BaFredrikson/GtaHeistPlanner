@@ -35,6 +35,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private bool _updatingCalibrationFields;
     private readonly ISpeechRecognitionService _speechRecognitionService;
     private readonly IAudioCaptureService _audioCaptureService;
+    private readonly IWhisperComputeCapabilityService _whisperComputeCapabilities;
     private readonly DispatcherTimer _inputDetectedResetTimer;
     private readonly DispatcherTimer _voiceUiHeartbeatTimer;
     private readonly DispatcherTimer _voiceFeedbackTimer;
@@ -397,10 +398,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public MainViewModel(
         ISpeechRecognitionService speechRecognitionService,
         IAudioCaptureService audioCaptureService,
-        HeistSessionStore? heistSessionStore = null)
+        HeistSessionStore? heistSessionStore = null,
+        IWhisperComputeCapabilityService? whisperComputeCapabilities = null)
     {
         _speechRecognitionService = speechRecognitionService;
         _audioCaptureService = audioCaptureService;
+        _whisperComputeCapabilities = whisperComputeCapabilities ?? new WhisperComputeCapabilityService();
         _heistSessionStore = heistSessionStore ?? new HeistSessionStore();
         _inputDetectedResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _inputDetectedResetTimer.Tick += (_, _) =>
@@ -1263,7 +1266,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void RefreshLocalBackendStatus()
     {
-        var capability = new WhisperComputeCapabilityService().Detect();
+        var capability = _whisperComputeCapabilities.Detect();
         LocalWhisperBackendStatus = SelectedLocalWhisperCompute switch
         {
             LocalWhisperCompute.Cpu => "CPU",

@@ -179,6 +179,20 @@ public sealed class LocalWhisperTranscriptionProviderTests
     }
 
     [Fact]
+    public async Task ExplicitCpuDoesNotInvokeCudaCapabilityProbe()
+    {
+        using var model = new TemporaryModel();
+        var loader = new ControlledLoader(released: true);
+        using var provider = new LocalWhisperTranscriptionProvider(model.Path, LocalWhisperCompute.Cpu, loader,
+            new ThrowingCapabilities());
+
+        await provider.StartAsync(Format, []);
+
+        Assert.Equal([LocalWhisperCompute.Cpu], loader.LoadedModes);
+        Assert.Equal(WhisperInferenceBackend.Cpu, loader.Runtime.Backend);
+    }
+
+    [Fact]
     public async Task ExplicitGpuSurfacesOriginalNativeLoadFailure()
     {
         using var model = new TemporaryModel();
@@ -266,6 +280,12 @@ public sealed class LocalWhisperTranscriptionProviderTests
     {
         public WhisperComputeCapabilities Detect() => new(true, cudaAvailable,
             cudaAvailable ? null : "CUDA test capability unavailable.");
+    }
+
+    private sealed class ThrowingCapabilities : IWhisperComputeCapabilityService
+    {
+        public WhisperComputeCapabilities Detect() =>
+            throw new InvalidOperationException("CUDA capability probing must not run in explicit CPU mode.");
     }
 
     private sealed class ImmediateProvider : ISpeechTranscriptionProvider
