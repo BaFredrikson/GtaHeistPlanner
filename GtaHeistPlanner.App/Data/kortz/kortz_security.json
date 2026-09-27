@@ -270,7 +270,8 @@
       "y": 0.1645021645021645,
       "patrolIds": [
         "exterior-firstfloor-patrol-01"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-02",
@@ -280,7 +281,8 @@
       "y": 0.38961038961038963,
       "patrolIds": [
         "exterior-firstfloor-patrol-03"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-groundfloor-guard-01",
@@ -288,7 +290,8 @@
       "name": "tango 4",
       "x": 0.7662068707449583,
       "y": 0.6545454545454545,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-03",
@@ -296,7 +299,8 @@
       "name": "tango 3",
       "x": 0.6753626187889136,
       "y": 0.5255411255411255,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-04",
@@ -304,7 +308,8 @@
       "name": "garden guard 1",
       "x": 0.2615985313196468,
       "y": 0.6909090909090909,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-05",
@@ -312,7 +317,8 @@
       "name": "guard loading bay",
       "x": 0.0827974298093819,
       "y": 0.5168831168831168,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-01",
@@ -320,7 +326,8 @@
       "name": "tango 5",
       "x": 0.8332009965010235,
       "y": 0.6805194805194805,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-02",
@@ -328,7 +335,8 @@
       "name": "tango 6",
       "x": 0.8321364565761001,
       "y": 0.8346320346320346,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-03",
@@ -336,7 +344,8 @@
       "name": "tango 7",
       "x": 0.7554895819816154,
       "y": 0.7437229437229437,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-04",
@@ -344,7 +353,8 @@
       "name": "tango 8",
       "x": 0.7831676200296238,
       "y": 0.7471861471861472,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-rooftop-guard-01",
@@ -354,7 +364,8 @@
       "y": 0.6233766233766234,
       "patrolIds": [
         "exterior-rooftop-patrol-01"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-rooftop-guard-02",
@@ -362,7 +373,8 @@
       "name": "tango 10",
       "x": 0.6224159210120334,
       "y": 0.5575757575757576,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-06",
@@ -372,7 +384,8 @@
       "y": 0.4562770562770563,
       "patrolIds": [
         "exterior-firstfloor-patrol-02"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-07",
@@ -380,7 +393,8 @@
       "name": "exterior-firstfloor-guard-07",
       "x": 0.43466882829432624,
       "y": 0.5948051948051948,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-08",
@@ -388,7 +402,8 @@
       "name": "exterior-firstfloor-guard-08",
       "x": 0.5458464362846832,
       "y": 0.548051948051948,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-09",
@@ -396,7 +411,8 @@
       "name": "exterior-firstfloor-guard-09",
       "x": 0.5664773326127908,
       "y": 0.6207792207792208,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-10",
@@ -404,7 +420,8 @@
       "name": "exterior-firstfloor-guard-10",
       "x": 0.5458464362846832,
       "y": 0.6233766233766234,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-11",
@@ -412,7 +429,8 @@
       "name": "exterior-firstfloor-guard-11",
       "x": 0.28108326674063716,
       "y": 0.6926406926406926,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-12",
@@ -422,7 +440,8 @@
       "y": 0.6805194805194805,
       "patrolIds": [
         "exterior-firstfloor-patrol-04"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-13",
@@ -432,7 +451,8 @@
       "y": 0.8441558441558441,
       "patrolIds": [
         "exterior-firstfloor-patrol-05"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-14",
@@ -442,7 +462,8 @@
       "y": 0.8484848484848485,
       "patrolIds": [
         "exterior-firstfloor-patrol-06"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-15",
@@ -450,7 +471,8 @@
       "name": "exterior-firstfloor-guard-15",
       "x": 0.5515772408202686,
       "y": 0.8337662337662337,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-16",
@@ -460,7 +482,8 @@
       "y": 0.8761904761904762,
       "patrolIds": [
         "exterior-firstfloor-patrol-07"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-17",
@@ -468,7 +491,8 @@
       "name": "exterior-firstfloor-guard-17",
       "x": 0.6994319978383723,
       "y": 0.8649350649350649,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-18",
@@ -478,7 +502,8 @@
       "y": 0.7073593073593074,
       "patrolIds": [
         "exterior-firstfloor-patrol-08"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-19",
@@ -486,7 +511,8 @@
       "name": "exterior-firstfloor-guard-19",
       "x": 0.6169084125259423,
       "y": 0.7056277056277056,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-firstfloor-guard-20",
@@ -496,7 +522,8 @@
       "y": 0.5489177489177489,
       "patrolIds": [
         "exterior-firstfloor-patrol-09"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-05",
@@ -506,7 +533,8 @@
       "y": 0.38614718614718613,
       "patrolIds": [
         "exterior-second-floor-patrol-01"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-06",
@@ -514,7 +542,8 @@
       "name": "exterior-second-floor-guard-06",
       "x": 0.2828338553156268,
       "y": 0.6199134199134199,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "exterior-second-floor-guard-07",
@@ -524,16 +553,21 @@
       "y": 0.5393939393939394,
       "patrolIds": [
         "exterior-second-floor-patrol-02"
-      ]
+      ],
+      "voiceAliases": []
     },
     {
       "id": "main-floor-guard-01",
       "mapId": "main-floor",
       "name": "Tiger guard",
-      "voiceAliases": ["Tiger Statue"],
       "x": 0.8666096591026166,
       "y": 0.31070496083550914,
-      "patrolIds": []
+      "patrolIds": [
+        "main-floor-patrol-02"
+      ],
+      "voiceAliases": [
+        "Tiger Statue"
+      ]
     },
     {
       "id": "main-floor-guard-02",
@@ -541,7 +575,8 @@
       "name": "Railing guard",
       "x": 0.46280771574321283,
       "y": 0.8642297650130548,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "main-floor-guard-03",
@@ -549,7 +584,8 @@
       "name": "Stairs up guard",
       "x": 0.25028037713300033,
       "y": 0.5091383812010444,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "upper-floor-guard-01",
@@ -557,7 +593,8 @@
       "name": "Rail guard",
       "x": 0.7851408459687018,
       "y": 0.6318537859007833,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "upper-floor-guard-02",
@@ -565,7 +602,8 @@
       "name": "Window guard",
       "x": 0.37071253567878737,
       "y": 0.7127937336814621,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "upper-floor-guard-03",
@@ -573,7 +611,8 @@
       "name": "Soda guard 1",
       "x": 0.33174919026691513,
       "y": 0.4725848563968668,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "upper-floor-guard-04",
@@ -581,16 +620,19 @@
       "name": "Soda guard 2",
       "x": 0.27507523330419176,
       "y": 0.4804177545691906,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "lower-floor-guard-01",
       "mapId": "lower-floor",
       "name": "Front desk guard",
-      "voiceAliases": ["Front Desk"],
       "x": 0.22047089076495083,
       "y": 0.539341041859379,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": [
+        "Front Desk"
+      ]
     },
     {
       "id": "basement-guard-01",
@@ -598,7 +640,8 @@
       "name": "Passive loading bay guard",
       "x": 0.34355173644464276,
       "y": 0.6710182767624021,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-02",
@@ -606,7 +649,10 @@
       "name": "Active loading bay guard",
       "x": 0.42374129866899674,
       "y": 0.4699738903394256,
-      "patrolIds": []
+      "patrolIds": [
+        "basement-patrol-03"
+      ],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-03",
@@ -614,7 +660,10 @@
       "name": "Vault console guard",
       "x": 0.2649345185776291,
       "y": 0.40992167101827676,
-      "patrolIds": []
+      "patrolIds": [
+        "basement-patrol-01"
+      ],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-04",
@@ -622,7 +671,8 @@
       "name": "Camera guard",
       "x": 0.2649345185776291,
       "y": 0.34879118189299535,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-05",
@@ -630,7 +680,8 @@
       "name": "Hallway guard 1",
       "x": 0.193714531306374,
       "y": 0.5280502750330928,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-06",
@@ -638,7 +689,8 @@
       "name": "Hallway guard 2",
       "x": 0.20413245463793378,
       "y": 0.521488378112823,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-07",
@@ -646,7 +698,8 @@
       "name": "Sleepy guard",
       "x": 0.31980732749180446,
       "y": 0.34879118189299535,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-08",
@@ -654,7 +707,8 @@
       "name": "Exit guard",
       "x": 0.1941790224973168,
       "y": 0.2924281984334204,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-09",
@@ -662,7 +716,10 @@
       "name": "Elevator guard",
       "x": 0.19575136685465708,
       "y": 0.1566579634464752,
-      "patrolIds": []
+      "patrolIds": [
+        "basement-patrol-02"
+      ],
+      "voiceAliases": []
     },
     {
       "id": "basement-guard-10",
@@ -670,7 +727,8 @@
       "name": "Nervous guard",
       "x": 0.27908561779369156,
       "y": 0.2898172323759791,
-      "patrolIds": []
+      "patrolIds": [],
+      "voiceAliases": []
     }
   ],
   "patrols": [
@@ -909,6 +967,78 @@
           "y": 0.5878787878787879
         }
       ]
+    },
+    {
+      "id": "basement-patrol-01",
+      "mapId": "basement",
+      "name": "basement-console-vault",
+      "waypoints": [
+        {
+          "x": 0.22121039610584928,
+          "y": 0.4112797623875994
+        },
+        {
+          "x": 0.26648918474203914,
+          "y": 0.4112797623875994
+        }
+      ]
+    },
+    {
+      "id": "basement-patrol-02",
+      "mapId": "basement",
+      "name": "basement-exit",
+      "waypoints": [
+        {
+          "x": 0.19970817336875185,
+          "y": 0.15100562303586113
+        },
+        {
+          "x": 0.19992511580698066,
+          "y": 0.25116227802477387
+        }
+      ]
+    },
+    {
+      "id": "main-floor-patrol-02",
+      "mapId": "main-floor",
+      "name": "main-floor-patrol",
+      "waypoints": [
+        {
+          "x": 0.8501556366426526,
+          "y": 0.32719469338972307
+        },
+        {
+          "x": 0.8472396244919392,
+          "y": 0.6625086268954118
+        },
+        {
+          "x": 0.5162722453859705,
+          "y": 0.6635833510412633
+        },
+        {
+          "x": 0.517730251461327,
+          "y": 0.33041886582727775
+        },
+        {
+          "x": 0.8472396244919392,
+          "y": 0.32934414168142623
+        }
+      ]
+    },
+    {
+      "id": "basement-patrol-03",
+      "mapId": "basement",
+      "name": "basement-loading-bay",
+      "waypoints": [
+        {
+          "x": 0.42288097076121595,
+          "y": 0.47131499733931226
+        },
+        {
+          "x": 0.46721360160719944,
+          "y": 0.4715846560272555
+        }
+      ]
     }
   ],
   "interactionMarkers": [
@@ -927,14 +1057,6 @@
       "x": 0.6767957623540494,
       "y": 0.6409774436090225,
       "displayName": "Rappel"
-    },
-    {
-      "id": "exterior-firstfloor-keycard-01",
-      "mapId": "exterior-firstfloor",
-      "type": 3,
-      "x": 0.779167796610305,
-      "y": 0.6712936867702929,
-      "displayName": "Keycard"
     },
     {
       "id": "upper-floor-elevator-01",
@@ -959,6 +1081,22 @@
       "x": 0.02740264360976868,
       "y": 0.16729323308270677,
       "displayName": "Elevator"
+    },
+    {
+      "id": "basement-painting-01",
+      "mapId": "basement",
+      "type": 4,
+      "x": 0.25484074916850163,
+      "y": 0.9872032069071845,
+      "displayName": "Painting"
+    },
+    {
+      "id": "exterior-firstfloor-keypad-01",
+      "mapId": "exterior-firstfloor",
+      "type": 5,
+      "x": 0.7764633333081048,
+      "y": 0.666980909242108,
+      "displayName": "Keypad"
     }
   ]
 }

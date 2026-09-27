@@ -51,6 +51,22 @@ public sealed class LootRunStateTests
         Assert.Null(error);
     }
 
+    [Fact]
+    public void AlwaysPresentLootStartsAndResetsPresentAndCannotBeCleared()
+    {
+        var definition = new LootSpawnDefinition("boxes", "basement", "Safety boxes",
+            LootType.SafetyDepositBoxes, .5, .5) { AlwaysPresent = true };
+        var run = new LootRunState([definition]);
+
+        Assert.True(run.GetState("boxes").IsPresent);
+        run.SetLootPresent("boxes", false);
+        Assert.True(run.GetState("boxes").IsPresent);
+
+        run.ResetLootState();
+        Assert.True(run.GetState("boxes").IsPresent);
+        Assert.True(run.IsAlwaysPresent("boxes"));
+    }
+
     private static List<LootSpawnDefinition> Definitions(int count) =>
         Enumerable.Range(1, count)
             .Select(index => new LootSpawnDefinition($"loot-{index}", "main-floor", $"Loot {index}", LootType.CoquardJewelry, .5, .5))

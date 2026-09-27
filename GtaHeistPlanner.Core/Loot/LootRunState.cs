@@ -16,7 +16,7 @@ public sealed class LootRunState
         _definitions = definitionList.ToDictionary(item => item.Id, StringComparer.Ordinal);
         _states = definitionList.ToDictionary(
             item => item.Id,
-            item => NewState(item.Id),
+            item => NewState(item),
             StringComparer.Ordinal);
     }
 
@@ -29,7 +29,12 @@ public sealed class LootRunState
             ? state
             : throw new KeyNotFoundException($"Unknown loot spawn '{spawnId}'.");
 
-    public void SetLootPresent(string spawnId, bool value) => GetState(spawnId).IsPresent = value;
+    public void SetLootPresent(string spawnId, bool value) =>
+        GetState(spawnId).IsPresent = value || _definitions[spawnId].AlwaysPresent;
+
+    public bool IsAlwaysPresent(string spawnId) => _definitions.TryGetValue(spawnId, out var definition)
+        ? definition.AlwaysPresent
+        : throw new KeyNotFoundException($"Unknown loot spawn '{spawnId}'.");
 
     public void RecordScopedLoot(string spawnId, int? scopedValue)
     {
@@ -56,14 +61,18 @@ public sealed class LootRunState
 
     public void ResetLootState()
     {
-        foreach (var state in _states.Values)
+        foreach (var (id, state) in _states)
         {
-            state.IsPresent = false;
+            state.IsPresent = _definitions[id].AlwaysPresent;
             state.IsBuyersRequest = false;
             state.IsLooted = false;
             state.ScopedValue = null;
         }
     }
 
-    private static LootSpawnState NewState(string id) => new() { SpawnId = id };
+    private static LootSpawnState NewState(LootSpawnDefinition definition) => new()
+    {
+        SpawnId = definition.Id,
+        IsPresent = definition.AlwaysPresent,
+    };
 }

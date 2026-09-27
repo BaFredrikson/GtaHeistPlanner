@@ -2,6 +2,7 @@ using GtaHeistPlanner.App.ViewModels;
 using GtaHeistPlanner.App.Services;
 using GtaHeistPlanner.App.Models;
 using Avalonia;
+using GtaHeistPlanner.Core.Loot;
 using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Voice;
 
@@ -417,7 +418,11 @@ public sealed class MainViewModelVoiceWorkflowTests
         Assert.False(File.Exists(path));
         Assert.Equal(1, viewModel.PlayerCount);
         Assert.Equal(PlannerStage.Preparation, viewModel.CurrentStage);
-        Assert.All(viewModel.LootMarkers, loot => Assert.False(loot.IsPresent || loot.IsLooted || loot.IsBuyersRequest || loot.ScopedValue is not null));
+        Assert.All(viewModel.LootMarkers, loot =>
+        {
+            Assert.Equal(loot.AlwaysPresent, loot.IsPresent);
+            Assert.False(loot.IsLooted || loot.IsBuyersRequest || loot.ScopedValue is not null);
+        });
         Assert.Equal(authoredCount, viewModel.LootMarkers.Count);
     }
 
@@ -443,6 +448,166 @@ public sealed class MainViewModelVoiceWorkflowTests
         Assert.Equal(1, safe.PlayerCount);
         Assert.Contains("could not be loaded", safe.SaveStatus, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("{broken", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void PrepDefaultsFollowRecommendationUntilUserOverrides()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var glass = viewModel.LootMarkers.First(marker => marker.Type == LootType.VerticalDisplayGlassCase
+            && marker.ZoneId != LootZoneCatalog.CrispGalleryId);
+        viewModel.SelectedLoot = glass;
+        viewModel.ToggleLootPresentCommand.Execute(null);
+        glass.ScopedValue = 100_000;
+
+        Assert.True(viewModel.IsGlassCutterAutomatic);
+        Assert.True(viewModel.IsGlassCutterEnabled);
+        Assert.Contains(viewModel.PlanningAnalysis.RecommendedHaul.SelectedLoot, item => item.LootId == glass.Id);
+
+        viewModel.IsGlassCutterEnabled = false;
+        viewModel.PlayerCount = 2;
+
+        Assert.False(viewModel.IsGlassCutterAutomatic);
+        Assert.False(viewModel.IsGlassCutterEnabled);
+        Assert.DoesNotContain(viewModel.PlanningAnalysis.RecommendedHaul.SelectedLoot,
+            item => item.RequiredPrep == OptionalPrep.GlassCutter);
+
+        viewModel.IsGlassCutterEnabled = true;
+        Assert.Contains(viewModel.PlanningAnalysis.RecommendedHaul.SelectedLoot, item => item.LootId == glass.Id);
+    }
+
+    [Fact]
+    public void ExplicitPrepChoicesRoundTripWithCurrentHeist()
+    {
+        var path = TempSavePath();
+        using (var source = CreateListeningViewModel(path))
+        {
+            source.IsGlassCutterEnabled = false;
+            source.IsPowerDrillsEnabled = true;
+            source.SaveHeistCommand.Execute(null);
+        }
+
+        using var restored = CreateListeningViewModel(path);
+
+        Assert.False(restored.IsGlassCutterAutomatic);
+        Assert.False(restored.IsPowerDrillsAutomatic);
+        Assert.False(restored.IsGlassCutterEnabled);
+        Assert.True(restored.IsPowerDrillsEnabled);
+    }
+
+    [Fact]
+    public void AutomaticGlassCutterDefaultReevaluatesWhenCrewMakesCrispLootAccessible()
+    {
+        using var viewModel = CreateListeningViewModel();
+        var crispGlass = viewModel.LootMarkers.First(marker => marker.Type == LootType.VerticalDisplayGlassCase
+            && marker.ZoneId == LootZoneCatalog.CrispGalleryId);
+        viewModel.SelectedLoot = crispGlass;
+        viewModel.ToggleLootPresentCommand.Execute(null);
+        crispGlass.ScopedValue = 110_000;
+
+        Assert.True(viewModel.IsGlassCutterAutomatic);
+        Assert.False(viewModel.IsGlassCutterEnabled);
+
+        viewModel.PlayerCount = 2;
+
+        Assert.True(viewModel.IsGlassCutterAutomatic);
+        Assert.True(viewModel.IsGlassCutterEnabled);
+        Assert.Contains(viewModel.PlanningAnalysis.RecommendedHaul.SelectedLoot, item => item.LootId == crispGlass.Id);
+    }
+
+    [Fact]
+    public void HeistRecommendedHaulSnapshotsPlanningAndRestoresCollectedBuyerAndEstimatedState()
+    {
+        var path = TempSavePath();
+        string[] expectedIds;
+        string paintingId;
+        using (var source = CreateListeningViewModel(path))
+        {
+            var painting = source.LootMarkers.First(marker => marker.Type == LootType.Painting
+                && marker.ZoneId != LootZoneCatalog.CrispGalleryId);
+            var cargo = source.LootMarkers.Single(marker => marker.Type == LootType.LoadingBayCargo);
+            paintingId = painting.Id;
+            source.SelectedLoot = painting;
+            source.ToggleLootPresentCommand.Execute(null);
+            painting.ScopedValue = 118_000;
+            source.ToggleBuyersRequestCommand.Execute(null);
+            source.SelectedLoot = cargo;
+            source.ToggleLootPresentCommand.Execute(null);
+            expectedIds = source.PlanningAnalysis.RecommendedHaul.SelectedLoot.Select(item => item.LootId).ToArray();
+
+            source.CurrentStage = PlannerStage.HeistActivity;
+            Assert.Equal(expectedIds, source.HeistRecommendedHaul.Select(item => item.Id));
+            Assert.Contains(source.HeistRecommendedHaul, item => item.Id == paintingId && item.IsBuyersRequest);
+            Assert.Contains(source.HeistRecommendedHaul, item => item.Id == cargo.Id
+                && item.ExactValue is null && item.ValueDisplay.Contains("est.", StringComparison.Ordinal));
+            Assert.Equal(source.PlanningAnalysis.RecommendedHaul.BagUsagePercent, source.HeistRecommendedBagUsage);
+            Assert.Equal(source.RecommendedHaulRange, source.HeistRecommendedValueRange);
+
+            source.SelectedLoot = painting;
+            source.ToggleLootedCommand.Execute(null);
+            Assert.True(source.HeistRecommendedHaul.Single(item => item.Id == paintingId).IsLooted);
+            Assert.Equal(expectedIds, source.HeistRecommendedHaul.Select(item => item.Id));
+            source.IsPowerDrillsEnabled = false;
+            source.SaveHeistCommand.Execute(null);
+        }
+
+        using var restored = CreateListeningViewModel(path);
+        Assert.Equal(PlannerStage.HeistActivity, restored.CurrentStage);
+        Assert.Equal(expectedIds, restored.HeistRecommendedHaul.Select(item => item.Id));
+        Assert.True(restored.HeistRecommendedHaul.Single(item => item.Id == paintingId).IsLooted);
+        Assert.Contains(restored.HeistRecommendedHaul, item => item.Id == paintingId && item.IsBuyersRequest);
+    }
+
+    [Fact]
+    public void AuthoredSafetyDepositBoxesAreAlwaysPresentAcrossResetAndOldMissingState()
+    {
+        var path = TempSavePath();
+        using (var fresh = CreateListeningViewModel(path))
+        {
+            Assert.All(fresh.LootMarkers.Where(marker => marker.Type == LootType.SafetyDepositBoxes),
+                marker => Assert.True(marker.IsPresent));
+            fresh.SelectedLoot = fresh.LootMarkers.First(marker => marker.Type == LootType.SafetyDepositBoxes);
+            Assert.False(fresh.CanToggleSelectedLootPresence);
+            fresh.ToggleLootPresentCommand.Execute(null);
+            Assert.True(fresh.SelectedLoot.IsPresent);
+            fresh.ResetHeistCommand.Execute(null);
+            Assert.All(fresh.LootMarkers.Where(marker => marker.Type == LootType.SafetyDepositBoxes),
+                marker => Assert.True(marker.IsPresent));
+        }
+
+        new HeistSessionStore(path).Save(new HeistSaveFile
+        {
+            HeistId = Guid.NewGuid(),
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            LastSavedAtUtc = DateTimeOffset.UtcNow,
+            LootStates = new(),
+        });
+        using var restored = CreateListeningViewModel(path);
+        Assert.All(restored.LootMarkers.Where(marker => marker.Type == LootType.SafetyDepositBoxes),
+            marker => Assert.True(marker.IsPresent));
+    }
+
+    [Fact]
+    public void InteractionToggleIsDeveloperOnlyAndCannotHideNormalMarkers()
+    {
+        using var viewModel = CreateListeningViewModel();
+        viewModel.CurrentStage = PlannerStage.HeistActivity;
+
+        Assert.False(viewModel.IsInteractionToggleVisible);
+        viewModel.ShowInteractionMarkers = false;
+        Assert.True(viewModel.EffectiveShowInteractionMarkers);
+        Assert.Contains(viewModel.VisibleMapCards, card => card.ShowInteractionMarkers);
+
+        viewModel.DeveloperMode = true;
+        Assert.True(viewModel.IsInteractionToggleVisible);
+        viewModel.ShowInteractionMarkers = false;
+        Assert.False(viewModel.EffectiveShowInteractionMarkers);
+
+        viewModel.DeveloperMode = false;
+        Assert.False(viewModel.IsInteractionToggleVisible);
+        Assert.True(viewModel.ShowInteractionMarkers);
+        Assert.True(viewModel.EffectiveShowInteractionMarkers);
+        Assert.Contains(viewModel.VisibleMapCards, card => card.ShowInteractionMarkers);
     }
 
     private static MainViewModel CreateListeningViewModel(string? path = null)

@@ -27,7 +27,8 @@ public partial class MapCardViewModel : ViewModelBase, IDisposable
         Map.Category == MapCategory.Exterior ? OverlayType.ExteriorGuards : OverlayType.InteriorGuards, Map.Id);
     public bool ShowCameras => Owner.CurrentPolicy.AllowsOverlay(
         Map.Category == MapCategory.Exterior ? OverlayType.ExteriorCameras : OverlayType.InteriorCameras, Map.Id);
-    public bool ShowInteractionMarkers => Owner.CurrentPolicy.AllowsOverlay(OverlayType.InteractionMarkers, Map.Id) && Owner.ShowInteractionMarkers;
+    public bool ShowInteractionMarkers => Owner.CurrentPolicy.AllowsOverlay(OverlayType.InteractionMarkers, Map.Id)
+        && Owner.EffectiveShowInteractionMarkers;
     public bool IsSecurityEditMode => Owner.DeveloperMode &&
         Owner.CurrentStage is PlannerStage.HeistInfiltration or PlannerStage.HeistActivity;
     public bool IsInteractionEditMode => Owner.DeveloperMode && ShowInteractionMarkers;

@@ -10,4 +10,5 @@ public sealed record LootSpawnDefinition(
     string? ZoneId = null)
 {
     public IReadOnlyList<string> VoiceAliases { get; init; } = [];
+    public bool AlwaysPresent { get; init; }
 }

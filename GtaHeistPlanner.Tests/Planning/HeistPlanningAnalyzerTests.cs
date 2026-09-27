@@ -242,6 +242,100 @@ public sealed class HeistPlanningAnalyzerTests
         Assert.Equal(118000, state.ScopedValue);
     }
 
+    [Fact]
+    public void GlassCutterSelectionConstrainsOptimizerAndCanBeReenabled()
+    {
+        var definitions = new[]
+        {
+            Loot("glass", LootType.VerticalDisplayGlassCase),
+            Loot("rings-a", LootType.CoquardJewelry),
+            Loot("rings-b", LootType.CoquardJewelry),
+        };
+        var states = new[] { State("glass", 100_000), State("rings-a", 40_000), State("rings-b", 40_000) };
+
+        var enabled = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(true, false));
+        var disabled = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(false, false));
+        var reenabled = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(true, false));
+
+        Assert.Contains(enabled.RecommendedHaul.SelectedLoot, item => item.LootId == "glass");
+        Assert.Equal(PrepRecommendationLevel.Required, enabled.GlassCutter.Recommendation);
+        Assert.DoesNotContain(disabled.RecommendedHaul.SelectedLoot, item => item.RequiredPrep == OptionalPrep.GlassCutter);
+        Assert.Equal(["rings-a", "rings-b"], disabled.RecommendedHaul.SelectedLoot.Select(item => item.LootId).Order().ToArray());
+        Assert.Equal(80_000, disabled.RecommendedHaul.KnownExactSubtotal);
+        Assert.Equal(enabled.RecommendedHaul.SelectedLoot.Select(item => item.LootId),
+            reenabled.RecommendedHaul.SelectedLoot.Select(item => item.LootId));
+        Assert.Equal(enabled.RecommendedHaul.TotalMinPotentialValue, reenabled.RecommendedHaul.TotalMinPotentialValue);
+        Assert.Equal(enabled.RecommendedHaul.BagUsagePercent, reenabled.RecommendedHaul.BagUsagePercent);
+    }
+
+    [Fact]
+    public void GlassCutterRecommendationIsNotUsefulWhenCaseDoesNotEnterBestHaul()
+    {
+        var values = new List<object>
+        {
+            Loot("glass", LootType.VerticalDisplayGlassCase), State("glass", 50_000),
+        };
+        for (var index = 0; index < 10; index++)
+        {
+            values.Add(Loot($"rings-{index}", LootType.CoquardJewelry));
+            values.Add(State($"rings-{index}", 40_000));
+        }
+
+        var analysis = Analyze(1, values.ToArray());
+
+        Assert.Equal(PrepRecommendationLevel.NotRecommended, analysis.GlassCutter.Recommendation);
+        Assert.DoesNotContain(analysis.RecommendedHaul.SelectedLoot, item => item.LootId == "glass");
+    }
+
+    [Fact]
+    public void PowerDrillsChoiceControlsOnlyUncertainBoxScenario()
+    {
+        var definitions = new[]
+        {
+            Loot("painting", LootType.Painting), Loot("box", LootType.SafetyDepositBoxes),
+        };
+        var states = new[] { State("painting", 110_000), State("box") };
+
+        var disabled = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(true, false));
+        var enabled = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(true, true));
+
+        Assert.DoesNotContain(disabled.PowerDrillsHaul.SelectedLoot, item => item.Type == LootType.SafetyDepositBoxes);
+        var box = Assert.Single(enabled.PowerDrillsHaul.SelectedLoot, item => item.Type == LootType.SafetyDepositBoxes);
+        Assert.Null(box.KnownExactValue);
+        Assert.Equal(5_000, box.EstimatedMinValue);
+        Assert.Equal(12_000, box.EstimatedMaxValue);
+
+        var noCapacityDefinitions = new[]
+        {
+            Loot("painting-a", LootType.Painting), Loot("painting-b", LootType.Painting), Loot("box", LootType.SafetyDepositBoxes),
+        };
+        var noCapacityStates = new[] { State("painting-a", 110_000), State("painting-b", 110_000), State("box") };
+        var noCapacity = HeistPlanningAnalyzer.Analyze(noCapacityDefinitions, noCapacityStates, 1, new(true, true));
+        Assert.DoesNotContain(noCapacity.PowerDrillsHaul.SelectedLoot, item => item.Type == LootType.SafetyDepositBoxes);
+    }
+
+    [Fact]
+    public void ExcludingGlassTargetsCanChangeEntryRecommendation()
+    {
+        var definitions = new[]
+        {
+            Loot("glass-a", LootType.VerticalDisplayGlassCase, mapId: "upper-floor"),
+            Loot("glass-b", LootType.VerticalDisplayGlassCase, mapId: "upper-floor"),
+            Loot("glass-c", LootType.VerticalDisplayGlassCase, mapId: "upper-floor"),
+            Loot("cargo", LootType.LoadingBayCargo, mapId: "basement"),
+        };
+        var states = new[]
+        {
+            State("glass-a", 150_000), State("glass-b", 150_000), State("glass-c", 150_000), State("cargo"),
+        };
+
+        var withCutter = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(true, false));
+        var withoutCutter = HeistPlanningAnalyzer.Analyze(definitions, states, 1, new(false, false));
+
+        Assert.Equal(InfiltrationEntry.Skylight, withCutter.EntryRecommendation.Entry);
+        Assert.Equal(InfiltrationEntry.AlphaMail, withoutCutter.EntryRecommendation.Entry);
+    }
+
     private static PlanningAnalysis Analyze(int players, params object[] values)
     {
         var definitions = values.OfType<LootSpawnDefinition>();

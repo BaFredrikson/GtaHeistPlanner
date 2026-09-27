@@ -6,5 +6,6 @@ public enum MapInteractionMarkerType
     Rappel,
     Elevator,
     Keycard,
+    Painting,
+    Keypad,
 }
-

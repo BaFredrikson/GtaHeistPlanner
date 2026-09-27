@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:GtaHeistPlanner.App.ViewModels" xmlns:models="using:GtaHeistPlanner.App.Models"
         xmlns:maps="using:GtaHeistPlanner.Core.Maps" xmlns:loot="using:GtaHeistPlanner.Core.Loot"
+        xmlns:paintings="using:GtaHeistPlanner.Core.Paintings"
         xmlns:controls="using:GtaHeistPlanner.App.Controls"
         xmlns:views="using:GtaHeistPlanner.App.Views"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
@@ -67,6 +68,23 @@
             BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsPlanningStage}">
       <ScrollViewer><StackPanel Spacing="16" MaxWidth="1000" HorizontalAlignment="Stretch">
         <TextBlock Text="HEIST PLANNING SUMMARY" FontSize="22" FontWeight="Bold" Foreground="#F3C969" />
+        <Border Padding="14" Background="#11151B" BorderBrush="#5B4B2A" BorderThickness="1" CornerRadius="6">
+          <StackPanel Spacing="6">
+            <TextBlock Text="PRIMARY TARGET" FontWeight="Bold" Foreground="#F3C969" />
+            <ComboBox ItemsSource="{Binding PrimaryPaintingOptions}" SelectedItem="{Binding CurrentPrimaryPainting}">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="paintings:PaintingDefinition"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasPrimaryPainting}">
+              <StackPanel><TextBlock Text="{Binding CurrentPrimaryPainting.Name}" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding PrimaryCollectionStatus}" Foreground="#98A4B3" /><TextBlock Text="{Binding PrimaryCollectionNote}" FontSize="10" Foreground="#E8A65A" /></StackPanel>
+              <StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="{Binding PrimaryRegularSaleDisplay, StringFormat='Regular sale: {0}'}" /><TextBlock Text="{Binding PrimaryWeeklySaleDisplay, StringFormat='First weekly sale: {0}'}" /></StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="18" IsVisible="{Binding HasPrimaryPainting}">
+              <RadioButton GroupName="PrimaryDisposition" Content="Sell" IsChecked="{Binding IsSellPrimaryTarget}" />
+              <RadioButton GroupName="PrimaryDisposition" Content="Keep" IsChecked="{Binding IsKeepPrimaryTarget}" />
+            </StackPanel>
+            <TextBlock Text="Keep is planning intent only; collection progress updates when End Heist is confirmed." FontSize="10" Foreground="#687484" />
+          </StackPanel>
+        </Border>
         <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
           <Border Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="CREW" Foreground="#98A4B3" /><TextBlock Text="{Binding PlayerCount, StringFormat='{}{0} player(s)'}" FontSize="20" /></StackPanel></Border>
           <Border Grid.Column="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel><TextBlock Text="BAG CAPACITY" Foreground="#98A4B3" /><TextBlock Text="{Binding PlanningSummary.BagCapacityPercent, StringFormat='{}{0}%'}" FontSize="20" /></StackPanel></Border>
@@ -112,13 +130,18 @@
         <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
           <Border Padding="14" Background="#11151B" CornerRadius="6"><StackPanel Spacing="4">
             <TextBlock Text="PREP RECOMMENDATIONS" FontWeight="Bold" Foreground="#75CFF4" />
-            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.Recommendation, StringFormat='Glass Cutter: {0}'}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.Reason}" FontSize="10" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.TargetCount, StringFormat='{}{0} selected target(s)'}" FontSize="10" Foreground="#98A4B3" />
-            <TextBlock Text="{Binding PlanningAnalysis.GlassCutter.BagPercent, StringFormat='{}{0}% selected bag usage'}" FontSize="10" Foreground="#98A4B3" />
-            <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.Recommendation, StringFormat='Power Drills: {0}'}" FontWeight="SemiBold" Margin="0,4,0,0" />
-            <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.Reason}" FontSize="10" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding PlanningAnalysis.PowerDrills.TargetCount, StringFormat='{}{0} box target(s) in drills scenario'}" FontSize="10" Foreground="#98A4B3" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <CheckBox IsChecked="{Binding IsGlassCutterEnabled}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Glass Cutter" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding PlanningAnalysis.GlassCutter.Recommendation}" Foreground="#F3C969" VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding GlassCutterImpact}" FontSize="10" TextWrapping="Wrap" Foreground="#98A4B3" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,6,0,0">
+              <CheckBox IsChecked="{Binding IsPowerDrillsEnabled}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="Power Drills" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding PlanningAnalysis.PowerDrills.Recommendation}" Foreground="#F3C969" VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding PowerDrillsImpact}" FontSize="10" TextWrapping="Wrap" Foreground="#98A4B3" />
           </StackPanel></Border>
           <Border Grid.Column="1" Padding="14" Background="#11151B" CornerRadius="6"><StackPanel Spacing="3">
             <TextBlock Text="BUYER'S REQUEST" FontWeight="Bold" Foreground="#FF5BA8" />
@@ -169,6 +192,23 @@
                 <StackPanel Spacing="4" IsVisible="{Binding IsPreparationStage}">
                   <TextBlock Text="Vault Code" FontWeight="SemiBold" />
                   <TextBox Text="{Binding VaultCode}" PlaceholderText="12-34-56" />
+                  <TextBlock Text="Primary painting" FontWeight="SemiBold" Margin="0,5,0,0" />
+                  <ComboBox ItemsSource="{Binding PrimaryPaintingOptions}" SelectedItem="{Binding CurrentPrimaryPainting}">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="paintings:PaintingDefinition"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Expander Header="Painting Collection" Margin="0,7,0,0">
+                    <StackPanel Spacing="4" Margin="0,6,0,0">
+                      <TextBlock Text="{Binding PaintingCollectionProgress}" FontWeight="Bold" Foreground="#F3C969" />
+                      <ItemsControl ItemsSource="{Binding PaintingCollectionItems}">
+                        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PaintingCollectionItemViewModel"><CheckBox Content="{Binding Name}" IsChecked="{Binding IsCollected}" FontSize="10" /></DataTemplate></ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Separator Margin="0,5" />
+                      <TextBlock Text="Reward" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding PaintingCollectionReward.Name}" />
+                      <TextBlock Text="{Binding PaintingRewardStatus}" Foreground="#F3C969" />
+                      <TextBlock Text="{Binding PaintingRewardDescription}" FontSize="10" Foreground="#98A4B3" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Expander>
                 </StackPanel>
                 <Border Padding="12" Background="#102634" BorderBrush="#75CFF4" BorderThickness="1" CornerRadius="6" IsVisible="{Binding IsActivityStage}">
                   <StackPanel>
@@ -190,7 +230,8 @@
                     <NumericUpDown Value="{Binding SelectedLoot.ScopedValue}" Minimum="0" Maximum="10000000"
                                    Increment="1000" FormatString="N0" AllowSpin="True" />
                     <TextBlock Text="{Binding SelectedLoot.AccessDisplay}" FontSize="11" TextWrapping="Wrap" />
-                    <CheckBox Content="Present" IsChecked="{Binding SelectedLoot.IsPresent, Mode=OneWay}" Command="{Binding ToggleLootPresentCommand}" />
+                    <CheckBox Content="Present" IsChecked="{Binding SelectedLoot.IsPresent, Mode=OneWay}" Command="{Binding ToggleLootPresentCommand}"
+                              IsEnabled="{Binding CanToggleSelectedLootPresence}" />
                     <CheckBox Content="Buyer's Request" IsChecked="{Binding SelectedLoot.IsBuyersRequest, Mode=OneWay}" Command="{Binding ToggleBuyersRequestCommand}" />
                     <CheckBox Content="Looted" IsChecked="{Binding SelectedLoot.IsLooted, Mode=OneWay}" Command="{Binding ToggleLootedCommand}" />
                   </StackPanel>
@@ -205,6 +246,41 @@
                 </Border>
 
                 <StackPanel Spacing="6" IsVisible="{Binding IsActivityStage}">
+                  <Border Padding="10" Background="#11151B" CornerRadius="6">
+                    <StackPanel Spacing="5">
+                      <TextBlock Text="RECOMMENDED HAUL" FontWeight="Bold" Foreground="#75CFF4" />
+                      <ItemsControl ItemsSource="{Binding HeistRecommendedHaul}">
+                        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:HeistRecommendedLootItemViewModel">
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7" Margin="0,2">
+                            <TextBlock Text="{Binding StatusGlyph}" FontWeight="Bold" />
+                            <StackPanel Grid.Column="1">
+                              <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="BUYER" Foreground="#FF5BA8" FontSize="9" FontWeight="Bold" IsVisible="{Binding IsBuyersRequest}" />
+                              </StackPanel>
+                              <TextBlock Text="{Binding Location}" FontSize="9" Foreground="#687484" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                              <TextBlock Text="{Binding BagPercent, StringFormat='{}{0}%'}" HorizontalAlignment="Right" />
+                              <TextBlock Text="{Binding ValueDisplay}" FontSize="9" Foreground="#98A4B3" HorizontalAlignment="Right" />
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,3,0,0">
+                        <TextBlock Text="Bag" FontWeight="SemiBold" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                          <TextBlock Text="{Binding HeistRecommendedBagUsage}" FontWeight="SemiBold" />
+                          <TextBlock Text=" / " /><TextBlock Text="{Binding HeistRecommendedBagCapacity, StringFormat='{}{0}%'}" />
+                        </StackPanel>
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Recommended value" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding HeistRecommendedValueRange}" FontWeight="SemiBold" />
+                      </Grid>
+                      <TextBlock Text="{Binding HeistRecommendedCollectedCount, StringFormat='{}{0} collected'}" FontSize="9" Foreground="#98A4B3" />
+                    </StackPanel>
+                  </Border>
                   <Border Padding="10" Background="#11151B" CornerRadius="6">
                     <StackPanel Spacing="3">
                       <TextBlock Text="HEIST STATUS" FontWeight="Bold" Foreground="#F3C969" />
@@ -231,7 +307,7 @@
                 </StackPanel>
 
                 <CheckBox Content="Interaction points" IsChecked="{Binding ShowInteractionMarkers}"
-                          IsVisible="{Binding IsMapStage}" />
+                          IsVisible="{Binding IsInteractionToggleVisible}" />
 
                 <StackPanel Spacing="7" IsVisible="{Binding DeveloperMode}">
                   <Separator Margin="0,8,0,3" /><TextBlock Text="DEVELOPER TOOLS" FontWeight="Bold" Foreground="#E8A65A" />

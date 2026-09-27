@@ -70,4 +70,21 @@ public sealed class LootSpawnJsonTests
 
         Assert.Throws<InvalidDataException>(() => LootSpawnJson.Load(stream));
     }
+
+    [Fact]
+    public void AlwaysPresentMetadataRoundTripsAndMissingLegacyValueDefaultsFalse()
+    {
+        var boxes = new LootSpawnDefinition("boxes", "basement", "Safety boxes",
+            LootType.SafetyDepositBoxes, .2, .3) { AlwaysPresent = true };
+        using var stream = new MemoryStream();
+        LootSpawnJson.Save(stream, [boxes]);
+        stream.Position = 0;
+        Assert.True(Assert.Single(LootSpawnJson.Load(stream).Spawns).AlwaysPresent);
+
+        const string legacyJson = """
+            { "spawns": [{ "id": "old", "mapId": "main-floor", "name": "Old", "type": "Painting", "x": 0.2, "y": 0.3 }] }
+            """;
+        using var legacy = new MemoryStream(Encoding.UTF8.GetBytes(legacyJson));
+        Assert.False(Assert.Single(LootSpawnJson.Load(legacy).Spawns).AlwaysPresent);
+    }
 }

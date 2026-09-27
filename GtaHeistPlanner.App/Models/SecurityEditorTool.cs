@@ -10,4 +10,6 @@ public enum SecurityEditorTool
     Rappel,
     Elevator,
     Keycard,
+    Painting,
+    Keypad,
 }

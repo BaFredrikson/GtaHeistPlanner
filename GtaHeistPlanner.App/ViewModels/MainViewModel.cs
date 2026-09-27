@@ -9,6 +9,7 @@ using GtaHeistPlanner.App.Services;
 using GtaHeistPlanner.Core.Maps;
 using GtaHeistPlanner.Core.Loot;
 using GtaHeistPlanner.Core.Overlays;
+using GtaHeistPlanner.Core.Paintings;
 using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Core.Settings;
 using GtaHeistPlanner.Core.Sewer;
@@ -29,6 +30,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly SewerGraphStore _sewerGraphStore = new();
     private readonly SecurityDatasetStore _securityDatasetStore = new();
     private readonly HeistSessionStore _heistSessionStore;
+    private readonly PaintingCollectionStore _paintingCollectionStore;
+    private readonly PaintingCatalog _paintingCatalog;
+    private PaintingCollectionState _paintingCollection;
+    private bool _loadingPaintingCollection;
     private readonly MapCalibration _initialCalibration;
     private ApplicationSettings? _settingsSnapshot;
     private LootRunState _lootRun = new([]);
@@ -46,6 +51,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly Stack<(string Description, Action Undo)> _voiceUndo = new();
     private readonly Dictionary<string, CameraDisableMethod> _disabledCameras = new(StringComparer.Ordinal);
     private string? _lastUndoneVoiceAction;
+    private bool? _glassCutterEnabledOverride;
+    private bool? _powerDrillsEnabledOverride;
+    private readonly List<string> _plannedHaulIds = [];
+    private int? _plannedHaulCapacityPercent;
     private Guid _heistId = Guid.NewGuid();
     private DateTimeOffset _heistCreatedAtUtc = DateTimeOffset.UtcNow;
     private bool _lastNamedGuardWasAlreadyDown;
@@ -97,6 +106,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(SelectedStageOption))]
     [NotifyPropertyChangedFor(nameof(IsPlanningStage))]
     [NotifyPropertyChangedFor(nameof(IsMapStage))]
+    [NotifyPropertyChangedFor(nameof(IsInteractionToggleVisible))]
     [NotifyPropertyChangedFor(nameof(IsActivityStage))]
     [NotifyPropertyChangedFor(nameof(IsInfiltrationStage))]
     [NotifyPropertyChangedFor(nameof(IsPreparationStage))]
@@ -115,6 +125,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowDeveloperCalibration))]
     [NotifyPropertyChangedFor(nameof(IsSecurityEditorVisible))]
     [NotifyPropertyChangedFor(nameof(IsInteractionEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsInteractionToggleVisible))]
+    [NotifyPropertyChangedFor(nameof(EffectiveShowInteractionMarkers))]
+    [NotifyPropertyChangedFor(nameof(CanToggleSelectedLootPresence))]
     public partial bool DeveloperMode { get; set; }
     [ObservableProperty] public partial bool MicrophoneEnabled { get; set; } = true;
     [ObservableProperty]
@@ -148,6 +161,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public partial bool IsLootEditMode { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedLoot))]
+    [NotifyPropertyChangedFor(nameof(CanToggleSelectedLootPresence))]
     public partial LootMarkerViewModel? SelectedLoot { get; set; }
     [ObservableProperty] public partial string? LootStatus { get; set; }
     [ObservableProperty] public partial int LootRevision { get; set; }
@@ -160,7 +174,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string? SewerExitPathId { get; set; }
     [ObservableProperty] public partial bool IsSewerRouteComplete { get; set; }
     [ObservableProperty] public partial SecurityEditorTool SecurityEditorTool { get; set; }
-    [ObservableProperty] public partial bool ShowInteractionMarkers { get; set; } = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveShowInteractionMarkers))]
+    public partial bool ShowInteractionMarkers { get; set; } = true;
     [ObservableProperty] public partial MapInteractionMarkerViewModel? SelectedInteractionMarker { get; set; }
     [ObservableProperty] public partial SecurityCameraViewModel? SelectedSecurityCamera { get; set; }
     [ObservableProperty] public partial SecurityGuardViewModel? SelectedSecurityGuard { get; set; }
@@ -194,6 +210,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial bool IsLoadHeistConfirmationOpen { get; set; }
     [ObservableProperty] public partial bool IsVoiceGuideOpen { get; set; }
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPrimaryPainting))]
+    [NotifyPropertyChangedFor(nameof(PrimaryCollectionStatus))]
+    [NotifyPropertyChangedFor(nameof(PrimaryCollectionNote))]
+    [NotifyPropertyChangedFor(nameof(PrimaryRegularSaleDisplay))]
+    [NotifyPropertyChangedFor(nameof(PrimaryWeeklySaleDisplay))]
+    public partial PaintingDefinition? CurrentPrimaryPainting { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsKeepPrimaryTarget))]
+    [NotifyPropertyChangedFor(nameof(IsSellPrimaryTarget))]
+    public partial PrimaryTargetDisposition PrimaryTargetChoice { get; set; }
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasVoiceFeedback))]
     public partial VoiceFeedback? CurrentVoiceFeedback { get; set; }
     private string? _pendingLoadHeistPath;
@@ -215,12 +242,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<MapInteractionMarkerViewModel> InteractionMarkers { get; } = [];
     public ObservableCollection<MapCardViewModel> VisibleMapCards { get; } = [];
     public ObservableCollection<PatrolAssignmentViewModel> SelectedGuardPatrolAssignments { get; } = [];
+    public ObservableCollection<PaintingCollectionItemViewModel> PaintingCollectionItems { get; } = [];
     public IReadOnlyList<SecurityEditorTool> SecurityEditorTools { get; } = Enum.GetValues<SecurityEditorTool>();
-    public IReadOnlyList<SecurityEditorTool> InteractionEditorTools { get; } =
-    [
-        SecurityEditorTool.Select, SecurityEditorTool.SewerEntrance, SecurityEditorTool.Rappel,
-        SecurityEditorTool.Elevator, SecurityEditorTool.Keycard,
-    ];
+    public IReadOnlyList<SecurityEditorTool> InteractionEditorTools { get; } = InteractionMarkerToolCatalog.Tools;
     public IReadOnlyList<PlayerCountOption> PlayerCountOptions { get; } =
     [
         new(1, "Solo"), new(2, "2"), new(3, "3"), new(4, "4"),
@@ -236,6 +260,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<LocalWhisperCompute> LocalWhisperComputeOptions { get; } = Enum.GetValues<LocalWhisperCompute>();
     public IReadOnlyList<string> OpenAiTranscriptionModels { get; } = ["gpt-live-transcribe"];
     public IReadOnlyList<LootEconomics> LootTypes { get; } = LootEconomicsCatalog.Standard;
+    public IReadOnlyList<PaintingDefinition> PrimaryPaintingOptions => _paintingCatalog.HeistTargets;
+    public PaintingDefinition PaintingCollectionReward => _paintingCatalog.Reward;
+    public string PaintingCollectionProgress => $"{_paintingCollection.CollectedCount} / {_paintingCollection.RequiredCount} collected";
+    public string PaintingRewardStatus => _paintingCollection.IsRewardUnlocked ? "Unlocked" : "Locked";
+    public string PaintingRewardDescription => _paintingCollection.IsRewardUnlocked ? "Collection complete" : "Keep all 26 paintings to unlock";
+    public bool HasPrimaryPainting => CurrentPrimaryPainting is not null;
+    public string PrimaryCollectionStatus => CurrentPrimaryPainting is null ? "No primary target selected" :
+        _paintingCollection.IsCollected(CurrentPrimaryPainting.Id) ? "Already kept" : "Not collected";
+    public string PrimaryCollectionNote => CurrentPrimaryPainting is not null && _paintingCollection.IsCollected(CurrentPrimaryPainting.Id)
+        ? "Keeping again will not increase collection progress." : string.Empty;
+    public string PrimaryRegularSaleDisplay => FormatPaintingValue(CurrentPrimaryPainting?.RegularValue);
+    public string PrimaryWeeklySaleDisplay => FormatPaintingValue(PaintingPricing.FirstWeeklySaleValue(CurrentPrimaryPainting?.RegularValue));
+    public bool IsKeepPrimaryTarget
+    {
+        get => PrimaryTargetChoice == PrimaryTargetDisposition.Keep;
+        set { if (value) PrimaryTargetChoice = PrimaryTargetDisposition.Keep; }
+    }
+    public bool IsSellPrimaryTarget
+    {
+        get => PrimaryTargetChoice == PrimaryTargetDisposition.Sell;
+        set { if (value) PrimaryTargetChoice = PrimaryTargetDisposition.Sell; }
+    }
     public string SelectedMapAssetUri => $"avares://GtaHeistPlanner.App/{SelectedMap.SvgAssetPath}";
     public StageViewPolicy CurrentPolicy => StageViewPolicies.Get(CurrentStage);
     public bool ShowLootOverlay => CurrentPolicy.AllowsOverlay(OverlayType.Loot, SelectedMap.Id);
@@ -247,6 +293,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsPlanningStage => CurrentStage == PlannerStage.Planning;
     public bool IsMapStage => !IsPlanningStage;
     public bool IsActivityStage => CurrentStage == PlannerStage.HeistActivity;
+    public bool IsInteractionToggleVisible => DeveloperMode && IsMapStage;
+    public bool EffectiveShowInteractionMarkers => !DeveloperMode || ShowInteractionMarkers;
+    public bool CanToggleSelectedLootPresence => SelectedLoot is not { AlwaysPresent: true };
     public bool IsInfiltrationStage => CurrentStage == PlannerStage.HeistInfiltration;
     public bool IsPreparationStage => CurrentStage == PlannerStage.Preparation;
     public bool HasSelectedPatrolWaypoint => SelectedSecurityPatrol is not null && SelectedPatrolWaypointIndex >= 0;
@@ -255,13 +304,81 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsSewerSelected => SelectedMap.Id == "sewer";
     public LootPlanningSummary PlanningSummary => LootPlanningSummaryCalculator.Calculate(
         LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount);
-    public PlanningAnalysis PlanningAnalysis => HeistPlanningAnalyzer.Analyze(
-        LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount);
+    public PlanningAnalysis PlanningAnalysis => AnalyzePlanning(IsGlassCutterEnabled, IsPowerDrillsEnabled);
+    public bool IsGlassCutterEnabled
+    {
+        get => _glassCutterEnabledOverride ?? AutomaticGlassCutterEnabled;
+        set
+        {
+            if (_glassCutterEnabledOverride == value) return;
+            _glassCutterEnabledOverride = value;
+            RefreshPlanningSummary();
+        }
+    }
+    public bool IsPowerDrillsEnabled
+    {
+        get => _powerDrillsEnabledOverride ?? AutomaticPowerDrillsEnabled;
+        set
+        {
+            if (_powerDrillsEnabledOverride == value) return;
+            _powerDrillsEnabledOverride = value;
+            RefreshPlanningSummary();
+        }
+    }
+    public bool IsGlassCutterAutomatic => !_glassCutterEnabledOverride.HasValue;
+    public bool IsPowerDrillsAutomatic => !_powerDrillsEnabledOverride.HasValue;
+    public string GlassCutterChoiceStatus => IsGlassCutterEnabled ? "Included" : "Skipped";
+    public string PowerDrillsChoiceStatus => IsPowerDrillsEnabled ? "Included" : "Skipped";
+    public string GlassCutterImpact
+    {
+        get
+        {
+            var withPrep = AnalyzePlanning(true, IsPowerDrillsEnabled).RecommendedHaul;
+            var withoutPrep = AnalyzePlanning(false, IsPowerDrillsEnabled).RecommendedHaul;
+            if (IsGlassCutterEnabled)
+            {
+                var cases = withPrep.SelectedLoot.Where(item => item.RequiredPrep == OptionalPrep.GlassCutter).ToArray();
+                return cases.Length == 0
+                    ? "No selected haul target currently requires the Glass Cutter."
+                    : $"Enables {cases.Length} selected case(s) · {cases.Sum(item => item.BagPercent)}% bag · {FormatRange(cases.Sum(item => item.PotentialMinValue), cases.Sum(item => item.PotentialMaxValue))}.";
+            }
+            return $"Glass-case loot excluded · with prep {FormatRange(withPrep.TotalMinPotentialValue, withPrep.TotalMaxPotentialValue)} · difference {FormatDelta(withoutPrep, withPrep)}.";
+        }
+    }
+    public string PowerDrillsImpact
+    {
+        get
+        {
+            if (!IsPowerDrillsEnabled) return "Safety Deposit Boxes excluded from planning.";
+            var analysis = PlanningAnalysis;
+            var boxes = analysis.PowerDrillsHaul.SelectedLoot.Where(item => item.Type == LootType.SafetyDepositBoxes).ToArray();
+            if (boxes.Length == 0) return "No current bag capacity available for Safety Deposit Boxes.";
+            return $"Optional use of spare capacity · {boxes.Sum(item => item.BagPercent)}% bag · estimated {FormatRange(boxes.Sum(item => item.PotentialMinValue), boxes.Sum(item => item.PotentialMaxValue))}.";
+        }
+    }
     public string PlanningValueRange => $"${PlanningSummary.EstimatedMinValue:N0} – ${PlanningSummary.EstimatedMaxValue:N0}";
     public string PlanningKnownValue => $"${PlanningAnalysis.KnownExactValue:N0}";
     public string PlanningEstimatedRange => $"${PlanningAnalysis.EstimatedMinValue:N0}–${PlanningAnalysis.EstimatedMaxValue:N0}";
     public string PlanningPotentialRange => $"${PlanningAnalysis.PotentialMinValue:N0}–${PlanningAnalysis.PotentialMaxValue:N0}";
     public string RecommendedHaulRange => $"${PlanningAnalysis.RecommendedHaul.TotalMinPotentialValue:N0}–${PlanningAnalysis.RecommendedHaul.TotalMaxPotentialValue:N0}";
+    public IReadOnlyList<HeistRecommendedLootItemViewModel> HeistRecommendedHaul => _plannedHaulIds
+        .Select(CreateHeistRecommendedLootItem)
+        .Where(item => item is not null)
+        .Cast<HeistRecommendedLootItemViewModel>()
+        .ToArray();
+    public int HeistRecommendedBagUsage => HeistRecommendedHaul.Sum(item => item.BagPercent);
+    public int HeistRecommendedBagCapacity => _plannedHaulCapacityPercent ?? PlayerCount * 100;
+    public string HeistRecommendedValueRange
+    {
+        get
+        {
+            var items = HeistRecommendedHaul;
+            var minimum = items.Sum(item => item.ExactValue ?? item.EstimatedMinValue);
+            var maximum = items.Sum(item => item.ExactValue ?? item.EstimatedMaxValue);
+            return FormatRange(minimum, maximum);
+        }
+    }
+    public int HeistRecommendedCollectedCount => HeistRecommendedHaul.Count(item => item.IsLooted);
     public string StageTitle => StageOptions.Single(option => option.Stage == CurrentStage).Label;
     public string StageDescription => CurrentStage switch
     {
@@ -399,12 +516,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ISpeechRecognitionService speechRecognitionService,
         IAudioCaptureService audioCaptureService,
         HeistSessionStore? heistSessionStore = null,
-        IWhisperComputeCapabilityService? whisperComputeCapabilities = null)
+        IWhisperComputeCapabilityService? whisperComputeCapabilities = null,
+        PaintingCatalog? paintingCatalog = null,
+        PaintingCollectionStore? paintingCollectionStore = null)
     {
         _speechRecognitionService = speechRecognitionService;
         _audioCaptureService = audioCaptureService;
         _whisperComputeCapabilities = whisperComputeCapabilities ?? new WhisperComputeCapabilityService();
         _heistSessionStore = heistSessionStore ?? new HeistSessionStore();
+        _paintingCatalog = paintingCatalog ?? PaintingCatalogLoader.LoadKortz();
+        _paintingCollectionStore = paintingCollectionStore ?? new PaintingCollectionStore();
+        _paintingCollection = _paintingCollectionStore.Load(_paintingCatalog);
         _inputDetectedResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _inputDetectedResetTimer.Tick += (_, _) =>
         {
@@ -437,6 +559,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         LoadLootLayout();
         LoadSewerGraph();
         LoadSecurityDataset();
+        RebuildPaintingCollectionItems();
         LoadCurrentHeistOnStartup();
     }
 
@@ -484,6 +607,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(ScopeOutState));
         }
         ApplyStagePolicy();
+        if (value == PlannerStage.HeistActivity)
+            EnsurePlannedHaulSnapshot();
         SelectedLoot = null;
         HoveredMarker = null;
         OnPropertyChanged(nameof(ShowLootOverlay));
@@ -500,10 +625,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnPlayerCountChanged(int value) => RefreshPlanningSummary();
 
+    partial void OnCurrentPrimaryPaintingChanged(PaintingDefinition? value)
+    {
+        OnPropertyChanged(nameof(PrimaryCollectionStatus));
+        OnPropertyChanged(nameof(PrimaryCollectionNote));
+        OnPropertyChanged(nameof(PrimaryRegularSaleDisplay));
+        OnPropertyChanged(nameof(PrimaryWeeklySaleDisplay));
+    }
+
     partial void OnDeveloperModeChanged(bool value)
     {
         if (!value)
         {
+            ShowInteractionMarkers = true;
             IsLootEditMode = false;
             SecurityEditorTool = SecurityEditorTool.Select;
             _voiceUiHeartbeatTimer.Stop();
@@ -1455,11 +1589,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IsEndHeistConfirmationOpen = false;
         if (MicrophoneStatus != MicrophoneStatus.Off)
             await StopVoiceRecognitionAsync();
+        if (PrimaryTargetChoice == PrimaryTargetDisposition.Keep && CurrentPrimaryPainting is not null)
+        {
+            PaintingCollectionCompletion.Apply(_paintingCollection, CurrentPrimaryPainting.Id, PrimaryTargetChoice);
+            _paintingCollectionStore.Save(_paintingCollection);
+            RefreshPaintingCollection();
+        }
         _heistSessionStore.DeleteCurrent();
         _lootRun.ResetLootState();
+        _plannedHaulIds.Clear();
+        _plannedHaulCapacityPercent = null;
+        _glassCutterEnabledOverride = null;
+        _powerDrillsEnabledOverride = null;
         PlayerCount = 1;
         CurrentStage = PlannerStage.Preparation;
         VaultCode = null;
+        CurrentPrimaryPainting = null;
+        PrimaryTargetChoice = PrimaryTargetDisposition.Sell;
         GuardsDown = 0;
         CamerasDown = 0;
         _disabledCameras.Clear();
@@ -1484,6 +1630,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (SelectedLoot is null)
             return;
+        if (SelectedLoot.AlwaysPresent)
+        {
+            LootStatus = "This loot is always present.";
+            return;
+        }
         _lootRun.SetLootPresent(SelectedLoot.Id, !SelectedLoot.IsPresent);
         SelectedLoot.ApplyState(_lootRun.GetState(SelectedLoot.Id));
         LootRevision++;
@@ -1632,7 +1783,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             SelectedSecurityPatrol.Waypoints.Add(new PatrolWaypoint(point.X, point.Y));
         }
-        else if (TryGetInteractionType(SecurityEditorTool, out var markerType))
+        else if (InteractionMarkerToolCatalog.TryGetMarkerType(SecurityEditorTool, out var markerType))
         {
             var definition = MapInteractionMarkerFactory.Create(markerType, SelectedMap.Id, point.X, point.Y,
                 InteractionMarkers.Select(item => item.Id));
@@ -1760,20 +1911,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         catch (InvalidDataException exception) { SecurityStatus = exception.Message; }
     }
 
-    private static bool TryGetInteractionType(SecurityEditorTool tool, out MapInteractionMarkerType type)
-    {
-        type = tool switch
-        {
-            SecurityEditorTool.SewerEntrance => MapInteractionMarkerType.SewerEntrance,
-            SecurityEditorTool.Rappel => MapInteractionMarkerType.Rappel,
-            SecurityEditorTool.Elevator => MapInteractionMarkerType.Elevator,
-            SecurityEditorTool.Keycard => MapInteractionMarkerType.Keycard,
-            _ => default,
-        };
-        return tool is SecurityEditorTool.SewerEntrance or SecurityEditorTool.Rappel
-            or SecurityEditorTool.Elevator or SecurityEditorTool.Keycard;
-    }
-
     [RelayCommand]
     private void SelectPatrolWaypoint(SecurityWaypointSelection selection)
     {
@@ -1880,6 +2017,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         GuardsDown = GuardsDown,
         CamerasDown = CamerasDown,
         FocusedMapId = FocusedMapId,
+        GlassCutterEnabled = _glassCutterEnabledOverride,
+        PowerDrillsEnabled = _powerDrillsEnabledOverride,
+        PlannedHaulIds = _plannedHaulIds.ToArray(),
+        PlannedHaulCapacityPercent = _plannedHaulCapacityPercent,
+        CurrentPrimaryPaintingId = CurrentPrimaryPainting?.Id,
+        PrimaryTargetDisposition = PrimaryTargetChoice,
         LootStates = _lootRun.States.ToDictionary(state => state.SpawnId, state =>
             new HeistLootState(state.IsPresent, state.ScopedValue, state.IsBuyersRequest, state.IsLooted), StringComparer.Ordinal),
         SewerRuntimeState = new SewerRuntimeSaveState
@@ -1923,6 +2066,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var knownLootIds = _lootRun.States.Select(state => state.SpawnId).ToHashSet(StringComparer.Ordinal);
         var unknownLoot = save.LootStates.Keys.FirstOrDefault(id => !knownLootIds.Contains(id));
         if (unknownLoot is not null) throw new InvalidDataException($"Save references unknown loot ID '{unknownLoot}'.");
+        var unknownPlannedLoot = save.PlannedHaulIds.FirstOrDefault(id => !knownLootIds.Contains(id));
+        if (unknownPlannedLoot is not null) throw new InvalidDataException($"Save references unknown planned loot ID '{unknownPlannedLoot}'.");
+        var primaryPainting = save.CurrentPrimaryPaintingId is null ? null : _paintingCatalog.Find(save.CurrentPrimaryPaintingId)
+            ?? throw new InvalidDataException($"Save references unknown painting ID '{save.CurrentPrimaryPaintingId}'.");
+        if (primaryPainting?.AcquisitionType == PaintingAcquisitionType.CollectionReward)
+            throw new InvalidDataException("The collection reward cannot be used as a heist primary target.");
         var knownPaths = SewerPaths.Select(path => path.Id).ToHashSet(StringComparer.Ordinal);
         var unknownPath = save.SewerRuntimeState.HighlightedPathIds.FirstOrDefault(id => !knownPaths.Contains(id));
         if (unknownPath is not null) throw new InvalidDataException($"Save references unknown sewer path '{unknownPath}'.");
@@ -1935,13 +2084,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         foreach (var (id, saved) in save.LootStates)
         {
             var state = _lootRun.GetState(id);
-            state.IsPresent = saved.IsPresent;
+            state.IsPresent = _lootRun.IsAlwaysPresent(id) || saved.IsPresent;
             state.ScopedValue = saved.ScopedValue;
             state.IsBuyersRequest = saved.IsBuyersRequest;
             state.IsLooted = saved.IsLooted;
         }
         _heistId = save.HeistId;
         _heistCreatedAtUtc = save.CreatedAtUtc;
+        _glassCutterEnabledOverride = save.GlassCutterEnabled;
+        _powerDrillsEnabledOverride = save.PowerDrillsEnabled;
+        _plannedHaulIds.Clear();
+        _plannedHaulIds.AddRange(save.PlannedHaulIds.Distinct(StringComparer.Ordinal));
+        _plannedHaulCapacityPercent = save.PlannedHaulCapacityPercent;
+        CurrentPrimaryPainting = primaryPainting;
+        PrimaryTargetChoice = save.PrimaryTargetDisposition;
         PlayerCount = save.PlayerCount;
         VaultCode = save.VaultCode;
         GuardsDown = save.GuardsDown;
@@ -1980,6 +2136,54 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (unknown is not null) throw new InvalidDataException($"Save references unknown {kind} ID '{unknown}'.");
     }
 
+    private void RebuildPaintingCollectionItems()
+    {
+        _loadingPaintingCollection = true;
+        try
+        {
+            PaintingCollectionItems.Clear();
+            foreach (var painting in _paintingCatalog.HeistTargets)
+            {
+                var item = new PaintingCollectionItemViewModel(painting, UpdatePaintingCollection)
+                {
+                    IsCollected = _paintingCollection.IsCollected(painting.Id),
+                };
+                PaintingCollectionItems.Add(item);
+            }
+        }
+        finally { _loadingPaintingCollection = false; }
+        RefreshPaintingCollection();
+    }
+
+    private void UpdatePaintingCollection(string id, bool collected)
+    {
+        if (_loadingPaintingCollection) return;
+        _paintingCollection.SetCollected(id, collected);
+        _paintingCollectionStore.Save(_paintingCollection);
+        RefreshPaintingCollection(updateItems: false);
+    }
+
+    private void RefreshPaintingCollection(bool updateItems = true)
+    {
+        if (updateItems)
+        {
+            _loadingPaintingCollection = true;
+            try
+            {
+                foreach (var item in PaintingCollectionItems)
+                    item.IsCollected = _paintingCollection.IsCollected(item.Id);
+            }
+            finally { _loadingPaintingCollection = false; }
+        }
+        OnPropertyChanged(nameof(PaintingCollectionProgress));
+        OnPropertyChanged(nameof(PaintingRewardStatus));
+        OnPropertyChanged(nameof(PaintingRewardDescription));
+        OnPropertyChanged(nameof(PrimaryCollectionStatus));
+        OnPropertyChanged(nameof(PrimaryCollectionNote));
+    }
+
+    private static string FormatPaintingValue(int? value) => value is null ? "Unknown" : $"GTA${value.Value:N0}";
+
     private void LoadSettings()
     {
         var settings = _settingsStore.Load();
@@ -2016,7 +2220,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             if (!previous.TryGetValue(state.SpawnId, out var oldState))
                 continue;
-            state.IsPresent = oldState.IsPresent;
+            state.IsPresent = _lootRun.IsAlwaysPresent(state.SpawnId) || oldState.IsPresent;
             state.IsBuyersRequest = oldState.IsBuyersRequest;
             state.IsLooted = oldState.IsLooted;
             state.ScopedValue = oldState.ScopedValue;
@@ -2065,6 +2269,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void RefreshPlanningSummary()
     {
+        if (CurrentStage is PlannerStage.Preparation or PlannerStage.Planning)
+        {
+            _plannedHaulIds.Clear();
+            _plannedHaulCapacityPercent = null;
+        }
         OnPropertyChanged(nameof(PlanningSummary));
         OnPropertyChanged(nameof(PlanningAnalysis));
         OnPropertyChanged(nameof(PlanningValueRange));
@@ -2072,6 +2281,70 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(PlanningEstimatedRange));
         OnPropertyChanged(nameof(PlanningPotentialRange));
         OnPropertyChanged(nameof(RecommendedHaulRange));
+        OnPropertyChanged(nameof(IsGlassCutterEnabled));
+        OnPropertyChanged(nameof(IsPowerDrillsEnabled));
+        OnPropertyChanged(nameof(IsGlassCutterAutomatic));
+        OnPropertyChanged(nameof(IsPowerDrillsAutomatic));
+        OnPropertyChanged(nameof(GlassCutterChoiceStatus));
+        OnPropertyChanged(nameof(PowerDrillsChoiceStatus));
+        OnPropertyChanged(nameof(GlassCutterImpact));
+        OnPropertyChanged(nameof(PowerDrillsImpact));
+        NotifyHeistRecommendedHaulChanged();
+    }
+
+    private void EnsurePlannedHaulSnapshot()
+    {
+        if (_plannedHaulIds.Count == 0)
+        {
+            var analysis = PlanningAnalysis;
+            _plannedHaulIds.AddRange(analysis.RecommendedHaul.SelectedLoot.Select(item => item.LootId));
+            _plannedHaulCapacityPercent = analysis.CrewCapacityPercent;
+        }
+        NotifyHeistRecommendedHaulChanged();
+    }
+
+    private HeistRecommendedLootItemViewModel? CreateHeistRecommendedLootItem(string id)
+    {
+        var marker = LootMarkers.FirstOrDefault(item => item.Id == id);
+        if (marker is null) return null;
+        var state = _lootRun.GetState(id);
+        var economics = marker.Economics;
+        var exactValue = marker.Type is LootType.LoadingBayCargo or LootType.SafetyDepositBoxes
+            ? null
+            : state.ScopedValue;
+        return new(id, marker.Name, KortzMapCatalog.GetById(marker.MapId).DisplayName,
+            economics.BagPercent, state.IsBuyersRequest, state.IsLooted, exactValue,
+            economics.MinValue, economics.MaxValue);
+    }
+
+    private void NotifyHeistRecommendedHaulChanged()
+    {
+        OnPropertyChanged(nameof(HeistRecommendedHaul));
+        OnPropertyChanged(nameof(HeistRecommendedBagUsage));
+        OnPropertyChanged(nameof(HeistRecommendedBagCapacity));
+        OnPropertyChanged(nameof(HeistRecommendedValueRange));
+        OnPropertyChanged(nameof(HeistRecommendedCollectedCount));
+    }
+
+    private bool AutomaticGlassCutterEnabled =>
+        AnalyzePlanning(true, true).GlassCutter.Recommendation == PrepRecommendationLevel.Required;
+
+    private bool AutomaticPowerDrillsEnabled =>
+        AnalyzePlanning(IsGlassCutterEnabled, true).PowerDrills.Recommendation == PrepRecommendationLevel.Recommended;
+
+    private PlanningAnalysis AnalyzePlanning(bool glassCutterEnabled, bool powerDrillsEnabled) =>
+        HeistPlanningAnalyzer.Analyze(LootMarkers.Select(marker => marker.ToDefinition()), _lootRun.States, PlayerCount,
+            new PlanningPrepSelection(glassCutterEnabled, powerDrillsEnabled));
+
+    private static string FormatRange(int minimum, int maximum) => minimum == maximum
+        ? $"${minimum:N0}"
+        : $"${minimum:N0}–${maximum:N0}";
+
+    private static string FormatDelta(HaulRecommendation selected, HaulRecommendation comparison)
+    {
+        var minimum = selected.TotalMinPotentialValue - comparison.TotalMinPotentialValue;
+        var maximum = selected.TotalMaxPotentialValue - comparison.TotalMaxPotentialValue;
+        return minimum == maximum ? $"{minimum:+$#,0;-$#,0;$0}" : $"{minimum:+$#,0;-$#,0;$0}–{maximum:+$#,0;-$#,0;$0}";
     }
 
     partial void OnScaleXChanged(double value) => UpdateCalibration();

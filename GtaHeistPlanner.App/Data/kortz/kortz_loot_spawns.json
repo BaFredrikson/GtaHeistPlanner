@@ -7,7 +7,8 @@
       "type": "LoadingBayCargo",
       "voiceAliases": [
         "loading bay cargo",
-        "truck cargo"
+        "truck cargo",
+        "cargo truck"
       ],
       "x": 0.4397344228804903,
       "y": 0.4618360440517605,
@@ -16,8 +17,30 @@
     {
       "id": "basement-loot-02",
       "mapId": "basement",
-      "name": "Vault Painting right right",
+      "name": "Painting Het Gouden Hondje",
       "type": "Painting",
+      "voiceAliases": [
+        "vault painting right right",
+        "painting het gouden hondje",
+        "het gouden hondje painting",
+        "het gouden hondje",
+        "painting het gouden",
+        "gouden hondje painting",
+        "gouden hondje",
+        "the gooden dog painting",
+        "the gooden dog",
+        "painting the gooden dog",
+        "gouden",
+        "hondje",
+        "gooden hund",
+        "gooden dog",
+        "painting gooden hund",
+        "painting gooden dog",
+        "painting gouden",
+        "painting hondje",
+        "painting the gooden",
+        "painting the gooden dog"
+      ],
       "x": 0.22012257405515834,
       "y": 0.9045379330513388,
       "zoneId": null
@@ -25,8 +48,23 @@
     {
       "id": "basement-loot-03",
       "mapId": "basement",
-      "name": "Vault Painting left left",
+      "name": "Painting Swingset Study no. LXiX",
       "type": "Painting",
+      "voiceAliases": [
+        "vault painting left left",
+        "painting swingset study number lxix",
+        "swingset study number lxix",
+        "painting swingset study",
+        "swingset study",
+        "painting swingset",
+        "swingset",
+        "painting study",
+        "study",
+        "painting lxix",
+        "lxix",
+        "painting number lxix",
+        "number lxix"
+      ],
       "x": 0.28855975485188967,
       "y": 0.9045379330513388,
       "zoneId": null
@@ -34,8 +72,24 @@
     {
       "id": "basement-loot-04",
       "mapId": "basement",
-      "name": "Vault Painting left right",
+      "name": "Painting The Hunter becomes the Hunted",
       "type": "Painting",
+      "voiceAliases": [
+        "vault painting left right",
+        "painting the hunter becomes the hunted",
+        "the hunter becomes the hunted painting",
+        "the hunter becomes the hunted",
+        "hunter becomes the hunted painting",
+        "hunter becomes the hunted",
+        "painting hunter becomes the hunted",
+        "hunter",
+        "painting hunter",
+        "the hunter",
+        "hunted",
+        "painting hunted",
+        "the hunted",
+        "painting the hunted"
+      ],
       "x": 0.28855975485188967,
       "y": 0.9410057131796565,
       "zoneId": null
@@ -43,8 +97,18 @@
     {
       "id": "basement-loot-05",
       "mapId": "basement",
-      "name": "Vault Painting right left",
+      "name": "Painting With Friends Like These",
       "type": "Painting",
+      "voiceAliases": [
+        "vault painting right left",
+        "painting with friends like these",
+        "with friends like these painting",
+        "painting with friends",
+        "friends like these painting",
+        "painting friends like these",
+        "with friends like these",
+        "friends like these"
+      ],
       "x": 0.22012257405515834,
       "y": 0.937613361539813,
       "zoneId": null
@@ -52,8 +116,9 @@
     {
       "id": "basement-loot-06",
       "mapId": "basement",
-      "name": "Safety box left",
+      "name": "Safety box east",
       "type": "SafetyDepositBoxes",
+      "alwaysPresent": true,
       "x": 0.22676200204290092,
       "y": 0.8638297133732166,
       "zoneId": null
@@ -61,8 +126,9 @@
     {
       "id": "basement-loot-07",
       "mapId": "basement",
-      "name": "Safety box right",
+      "name": "Safety box west",
       "type": "SafetyDepositBoxes",
+      "alwaysPresent": true,
       "x": 0.27936670071501535,
       "y": 0.8638297133732166,
       "zoneId": null
@@ -70,7 +136,11 @@
     {
       "id": "lower-floor-loot-01",
       "mapId": "lower-floor",
-      "name": "Bottom rings",
+      "name": "Bottom rings and bracelets",
+      "voiceAliases": [
+        "bottom rings",
+        "bottom jewelry"
+      ],
       "type": "CoquardJewelry",
       "x": 0.17766403607666292,
       "y": 0.9072,
@@ -97,11 +167,12 @@
     {
       "id": "main-floor-loot-01",
       "mapId": "main-floor",
-      "name": "Main rings and bracelets south south",
+      "name": "Left case rings and bracelets",
       "voiceAliases": [
-        "main rings south south",
-        "main jewelry south south",
-        "main south south"
+        "left case rings",
+        "left case jewelry",
+        "rings left case",
+        "jewelry left case"
       ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
@@ -111,11 +182,12 @@
     {
       "id": "main-floor-loot-02",
       "mapId": "main-floor",
-      "name": "Main rings and bracelets south mid",
+      "name": "Right case rings and bracelets",
       "voiceAliases": [
-        "main rings south mid",
-        "main jewelry south mid",
-        "main south mid"
+        "right case rings",
+        "right case jewelry",
+        "rings right case",
+        "jewelry right case"
       ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
@@ -125,11 +197,12 @@
     {
       "id": "main-floor-loot-03",
       "mapId": "main-floor",
-      "name": "Main rings and bracelets north east",
+      "name": "Showcase rings and bracelets",
       "voiceAliases": [
-        "main rings north east",
-        "main jewelry north east",
-        "main north east"
+        "showcase rings",
+        "showcase jewelry",
+        "rings showcase",
+        "jewelry showcase"
       ],
       "type": "CoquardJewelry",
       "x": 0.5466681698609546,
@@ -139,11 +212,12 @@
     {
       "id": "main-floor-loot-04",
       "mapId": "main-floor",
-      "name": "Main rings and bracelets north west",
+      "name": "North rings and bracelets",
       "voiceAliases": [
-        "main rings north west",
-        "main jewelry north west",
-        "main north west"
+        "rings north",
+        "jewelry north",
+        "north rings",
+        "north jewelry"
       ],
       "type": "CoquardJewelry",
       "x": 0.7365967681322811,
@@ -154,6 +228,11 @@
       "id": "main-floor-loot-05",
       "mapId": "main-floor",
       "name": "Painting La Duchesse",
+      "voiceAliases": [
+        "la duchesse painting",
+        "duchesse",
+        "la duchesse"
+      ],
       "type": "Painting",
       "x": 0.643260428410372,
       "y": 0.8048,
@@ -163,6 +242,11 @@
       "id": "main-floor-loot-06",
       "mapId": "main-floor",
       "name": "Painting Do You See Me",
+      "voiceAliases": [
+        "do you see me painting",
+        "you see me",
+        "do you see me"
+      ],
       "type": "Painting",
       "x": 0.6291514468245021,
       "y": 0.7152,
@@ -172,6 +256,10 @@
       "id": "main-floor-loot-07",
       "mapId": "main-floor",
       "name": "Painting Explain Yourself",
+      "voiceAliases": [
+        "explain yourself painting",
+        "explain yourself"
+      ],
       "type": "Painting",
       "x": 0.7246583990980834,
       "y": 0.768,
@@ -185,7 +273,12 @@
         "painting chief",
         "chief",
         "the chief",
-        "the chief painting"
+        "the chief painting",
+        "chef painting",
+        "chef",
+        "the chef",
+        "the chef painting",
+        "painting chef"
       ],
       "type": "Painting",
       "x": 0.6269808342728298,
@@ -196,6 +289,10 @@
       "id": "main-floor-loot-09",
       "mapId": "main-floor",
       "name": "Painting orange crush",
+      "voiceAliases": [
+        "orange crush painting",
+        "orange crush"
+      ],
       "type": "Painting",
       "x": 0.6389192033070275,
       "y": 0.388,
@@ -205,6 +302,18 @@
       "id": "main-floor-loot-10",
       "mapId": "main-floor",
       "name": "Painting Canis Hominem Edit",
+      "voiceAliases": [
+        "canis hominem edit painting",
+        "canis hominem edit",
+        "canis hominem",
+        "canis",
+        "hominem",
+        "edit",
+        "canis hominem painting",
+        "canis painting",
+        "hominem painting",
+        "edit painting"
+      ],
       "type": "Painting",
       "x": 0.721402480270575,
       "y": 0.4224,
@@ -213,11 +322,11 @@
     {
       "id": "main-floor-loot-11",
       "mapId": "main-floor",
-      "name": "Main rings and bracelets south",
+      "name": "Security Rings and bracelets",
       "voiceAliases": [
-        "south rings",
-        "south jewelry",
-        "main south"
+        "security rings",
+        "security jewelry",
+        "security"
       ],
       "type": "CoquardJewelry",
       "x": 0.37648863968090784,
@@ -228,6 +337,11 @@
       "id": "main-floor-loot-12",
       "mapId": "main-floor",
       "name": "Main fertility statue",
+      "voiceAliases": [
+        "fertility statue",
+        "main fertility",
+        "main statue"
+      ],
       "type": "FertilityStatue",
       "x": 0.13099586621570838,
       "y": 0.584,
@@ -236,11 +350,14 @@
     {
       "id": "upper-floor-loot-01",
       "mapId": "upper-floor",
-      "name": "Upper painting cook",
+      "name": "Painting Cooked",
       "voiceAliases": [
-        "upper cook painting",
-        "upper painting cooked",
-        "upper cooked painting"
+        "cook painting",
+        "painting cooked",
+        "cooked painting",
+        "cooked",
+        "cook",
+        "painting cook"
       ],
       "type": "Painting",
       "x": 0.2699150695227358,
@@ -250,11 +367,17 @@
     {
       "id": "upper-floor-loot-02",
       "mapId": "upper-floor",
-      "name": "Upper painting shotgun",
+      "name": "Painting sod off",
       "voiceAliases": [
-        "upper shotgun painting",
-        "upper painting shotgun",
-        "upper shotgun"
+        "sod off painting",
+        "painting sod off",
+        "sod off",
+        "painting sod",
+        "sod",
+        "painting shot gun",
+        "shot gun",
+        "painting shotgun",
+        "shotgun"
       ],
       "type": "Painting",
       "x": 0.2742562946260804,
@@ -264,10 +387,14 @@
     {
       "id": "upper-floor-loot-03",
       "mapId": "upper-floor",
-      "name": "Upper rings and bracelets",
+      "name": "Upper floor rings and bracelets",
       "voiceAliases": [
         "upper rings",
-        "upper jewelry"
+        "upper jewelry",
+        "upper rings and bracelets",
+        "upper bracelets",
+        "upper floor rings",
+        "upper floor jewelry"
       ],
       "type": "CoquardJewelry",
       "x": 0.7702412626832018,
@@ -287,6 +414,13 @@
       "id": "upper-floor-loot-05",
       "mapId": "upper-floor",
       "name": "Upper horse statue",
+      "voiceAliases": [
+        "upper horse statue",
+        "upper horse",
+        "upper statue",
+        "horse statue",
+        "horse"
+      ],
       "type": "VerticalDisplayGlassCase",
       "x": 0.7702412626832018,
       "y": 0.6376,
@@ -305,6 +439,59 @@
       "id": "upper-floor-loot-07",
       "mapId": "upper-floor",
       "name": "Gallery Painting Don\u0027t Forgo These Blueprints",
+      "voiceAliases": [
+        "gallery painting don't forgo these blueprints",
+        "gallery painting dont forgo these blueprints",
+        "gallery painting don't forget these blueprints",
+        "gallery painting dont forget these blueprints",
+        "gallery painting blueprints",
+        "gallery painting forgo these blueprints",
+        "gallery painting forget these blueprints",
+        "gallery painting forgo blueprints",
+        "gallery painting forget blueprints",
+        "gallery painting forgo",
+        "gallery painting forget",
+        "gallery painting forgo these",
+        "painting don't forgo these blueprints",
+        "painting dont forgo these blueprints",
+        "painting don't forget these blueprints",
+        "painting dont forget these blueprints",
+        "painting blueprints",
+        "painting forgo these blueprints",
+        "painting forget these blueprints",
+        "painting forgo blueprints",
+        "painting forget blueprints",
+        "painting blueprints",
+        "painting forgo",
+        "painting forget",
+        "painting forgo these",
+        "don't forgo these blueprints",
+        "dont forgo these blueprints",
+        "don't forget these blueprints",
+        "dont forget these blueprints",
+        "blueprints",
+        "forgo these blueprints",
+        "forget these blueprints",
+        "forgo blueprints",
+        "forget blueprints",
+        "forgo",
+        "forget",
+        "forgo these",
+        "gallery don't forgo these blueprints",
+        "gallery dont forgo these blueprints",
+        "gallery don't forget these blueprints",
+        "gallery dont forget these blueprints",
+        "gallery blueprints",
+        "gallery forgo these blueprints",
+        "gallery forget these blueprints",
+        "gallery blueprints",
+        "gallery forgo blueprints",
+        "gallery forget blueprints",
+        "gallery blueprints",
+        "gallery forgo",
+        "gallery forget",
+        "gallery forgo these"
+      ],
       "type": "Painting",
       "x": 0.9059045471627207,
       "y": 0.8544,
@@ -314,6 +501,38 @@
       "id": "upper-floor-loot-08",
       "mapId": "upper-floor",
       "name": "Gallery Painting The Great Circle Back",
+      "voiceAliases": [
+        "gallery painting the great circle back",
+        "gallery painting great circle back",
+        "gallery painting the great circle",
+        "gallery painting great circle",
+        "gallery painting the circle back",
+        "gallery painting circle back",
+        "gallery painting the circle",
+        "gallery painting circle",
+        "gallery painting the great back",
+        "gallery painting great back",
+        "gallery painting the great",
+        "gallery painting great",
+        "gallery painting the back",
+        "gallery painting back",
+        "gallery painting the",
+        "gallery painting the great circle back",
+        "painting the great circle back",
+        "painting great circle back",
+        "painting the great circle",
+        "painting great circle",
+        "painting the circle back",
+        "painting circle back",
+        "painting the circle",
+        "painting circle",
+        "painting the great back",
+        "painting great back",
+        "painting the great",
+        "painting great",
+        "painting the back",
+        "painting back"
+      ],
       "type": "Painting",
       "x": 0.7463645246148064,
       "y": 0.8128,
@@ -341,6 +560,13 @@
       "id": "upper-floor-loot-12",
       "mapId": "upper-floor",
       "name": "Gallery meteor fragment",
+      "voiceAliases": [
+        "gallery meteor fragment",
+        "gallery meteor",
+        "gallery fragment",
+        "meteor fragment",
+        "meteor"
+      ],
       "type": "FertilityStatue",
       "x": 0.5412416384817738,
       "y": 0.8872,
@@ -350,6 +576,13 @@
       "id": "upper-floor-loot-13",
       "mapId": "upper-floor",
       "name": "Gallery venus statue",
+      "voiceAliases": [
+        "gallery venus statue",
+        "gallery venus",
+        "gallery statue",
+        "venus statue",
+        "venus"
+      ],
       "type": "VerticalDisplayGlassCase",
       "x": 0.5423269447576099,
       "y": 0.8136,

@@ -9,6 +9,7 @@ public partial class LootMarkerViewModel : ViewModelBase
     public string Id { get; }
     public string MapId { get; }
     public IReadOnlyList<string> VoiceAliases { get; }
+    public bool AlwaysPresent { get; }
     public string LabelText => Name;
 
     [ObservableProperty] public partial string Name { get; set; }
@@ -55,6 +56,7 @@ public partial class LootMarkerViewModel : ViewModelBase
         Id = definition.Id;
         MapId = definition.MapId;
         VoiceAliases = definition.VoiceAliases;
+        AlwaysPresent = definition.AlwaysPresent;
         Name = definition.Name;
         Type = definition.Type;
         X = definition.X;
@@ -66,6 +68,7 @@ public partial class LootMarkerViewModel : ViewModelBase
     public LootSpawnDefinition ToDefinition() => new(Id, MapId, Name, Type, X, Y, ZoneId)
     {
         VoiceAliases = VoiceAliases,
+        AlwaysPresent = AlwaysPresent,
     };
 
     public void ApplyState(LootSpawnState state)

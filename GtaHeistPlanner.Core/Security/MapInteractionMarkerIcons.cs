@@ -8,6 +8,8 @@ public static class MapInteractionMarkerIcons
         MapInteractionMarkerType.Rappel => "rappel.png",
         MapInteractionMarkerType.Elevator => "elevator.png",
         MapInteractionMarkerType.Keycard => "keycard.png",
+        MapInteractionMarkerType.Painting => "painting.png",
+        MapInteractionMarkerType.Keypad => "keypad.png",
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -17,7 +19,8 @@ public static class MapInteractionMarkerIcons
         MapInteractionMarkerType.Rappel => "Rappel",
         MapInteractionMarkerType.Elevator => "Elevator",
         MapInteractionMarkerType.Keycard => "Keycard",
+        MapInteractionMarkerType.Painting => "Painting",
+        MapInteractionMarkerType.Keypad => "Keypad",
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 }
-

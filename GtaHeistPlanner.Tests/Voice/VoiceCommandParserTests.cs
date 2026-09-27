@@ -57,6 +57,22 @@ public sealed class VoiceCommandParserTests
     }
 
     [Fact]
+    public void RenamedDisplayNameRetainsStableVoiceAliasIdentity()
+    {
+        var renamedPainting = new LootSpawnDefinition(
+            "basement-loot-02", "basement", "Painting Het Gouden Hondje", LootType.Painting, .2, .3)
+        {
+            VoiceAliases = ["vault painting right right"],
+        };
+
+        var command = Assert.IsType<RecordScopedLootCommand>(new VoiceCommandParser([renamedPainting])
+            .Parse("vault painting right right", ScopeOutSessionState.Active).Command);
+
+        Assert.Equal(renamedPainting.Id, command.LootLocationId);
+        Assert.Null(command.ScopedValue);
+    }
+
+    [Fact]
     public void UnknownAliasIsRejected()
     {
         var result = new VoiceCommandParser([WestPainting]).Parse("east sculpture 40 thousand",

@@ -13,6 +13,12 @@ public sealed class HeistSaveFile
     public int GuardsDown { get; init; }
     public int CamerasDown { get; init; }
     public string? FocusedMapId { get; init; }
+    public bool? GlassCutterEnabled { get; init; }
+    public bool? PowerDrillsEnabled { get; init; }
+    public IReadOnlyList<string> PlannedHaulIds { get; init; } = [];
+    public int? PlannedHaulCapacityPercent { get; init; }
+    public string? CurrentPrimaryPaintingId { get; init; }
+    public GtaHeistPlanner.Core.Paintings.PrimaryTargetDisposition PrimaryTargetDisposition { get; init; }
     public Dictionary<string, HeistLootState> LootStates { get; init; } = new(StringComparer.Ordinal);
     public SewerRuntimeSaveState SewerRuntimeState { get; init; } = new();
     public SecurityRuntimeSaveState SecurityRuntimeState { get; init; } = new();

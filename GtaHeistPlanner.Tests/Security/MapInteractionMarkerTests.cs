@@ -1,3 +1,4 @@
+using GtaHeistPlanner.App.Models;
 using GtaHeistPlanner.Core.Planning;
 using GtaHeistPlanner.Core.Security;
 using System.Text;
@@ -11,6 +12,8 @@ public sealed class MapInteractionMarkerTests
     [InlineData(MapInteractionMarkerType.Rappel, "rappel.png")]
     [InlineData(MapInteractionMarkerType.Elevator, "elevator.png")]
     [InlineData(MapInteractionMarkerType.Keycard, "keycard.png")]
+    [InlineData(MapInteractionMarkerType.Painting, "painting.png")]
+    [InlineData(MapInteractionMarkerType.Keypad, "keypad.png")]
     public void TypeMapsToExpectedIcon(MapInteractionMarkerType type, string fileName) =>
         Assert.Equal(fileName, MapInteractionMarkerIcons.FileName(type));
 
@@ -38,6 +41,8 @@ public sealed class MapInteractionMarkerTests
     [InlineData(MapInteractionMarkerType.Rappel)]
     [InlineData(MapInteractionMarkerType.Elevator)]
     [InlineData(MapInteractionMarkerType.Keycard)]
+    [InlineData(MapInteractionMarkerType.Painting)]
+    [InlineData(MapInteractionMarkerType.Keypad)]
     public void DeveloperPlacementCreatesRequestedType(MapInteractionMarkerType type)
     {
         var marker = MapInteractionMarkerFactory.Create(type, "main-floor", .25, .75, []);
@@ -47,6 +52,56 @@ public sealed class MapInteractionMarkerTests
         Assert.Equal(.25, marker.X);
         Assert.Equal(.75, marker.Y);
         Assert.False(string.IsNullOrWhiteSpace(marker.Id));
+    }
+
+    [Theory]
+    [InlineData(MapInteractionMarkerType.Painting, 4)]
+    [InlineData(MapInteractionMarkerType.Keypad, 5)]
+    public void NewMarkerTypesRoundTripWithStablePersistedValues(MapInteractionMarkerType type, int persistedValue)
+    {
+        var expected = new MapInteractionMarker("new-marker", "main-floor", type, .2, .3,
+            MapInteractionMarkerIcons.DefaultDisplayName(type));
+        using var stream = new MemoryStream();
+
+        SecurityDatasetJson.Save(stream, new([], [], [], [expected]));
+        var json = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains($"\"type\": {persistedValue}", json);
+        stream.Position = 0;
+
+        Assert.Equal(type, Assert.Single(SecurityDatasetJson.Load(stream).Markers).Type);
+    }
+
+    [Theory]
+    [InlineData(SecurityEditorTool.Painting, MapInteractionMarkerType.Painting)]
+    [InlineData(SecurityEditorTool.Keypad, MapInteractionMarkerType.Keypad)]
+    public void DeveloperEditorOffersAndMapsNewMarkerTools(
+        SecurityEditorTool tool, MapInteractionMarkerType expectedType)
+    {
+        Assert.Contains(tool, InteractionMarkerToolCatalog.Tools);
+        Assert.True(InteractionMarkerToolCatalog.TryGetMarkerType(tool, out var actualType));
+        Assert.Equal(expectedType, actualType);
+    }
+
+    [Fact]
+    public void LegacyNumericMarkerTypesStillLoadWithoutMigration()
+    {
+        const string legacyJson = """
+            {
+              "cameras": [],
+              "guards": [],
+              "patrols": [],
+              "interactionMarkers": [
+                { "id": "old-sewer", "mapId": "sewer", "type": 0, "x": 0.2, "y": 0.3, "displayName": "Sewer Entrance" },
+                { "id": "old-keycard", "mapId": "main-floor", "type": 3, "x": 0.4, "y": 0.5, "displayName": "Keycard" }
+              ]
+            }
+            """;
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(legacyJson));
+
+        var markers = SecurityDatasetJson.Load(stream).Markers;
+
+        Assert.Equal(MapInteractionMarkerType.SewerEntrance, markers[0].Type);
+        Assert.Equal(MapInteractionMarkerType.Keycard, markers[1].Type);
     }
 
     [Fact]

@@ -5,6 +5,11 @@ namespace GtaHeistPlanner.Core.Planning;
 public enum PrepRecommendationLevel { Required, Recommended, Optional, NotRecommended, NotNeeded }
 public enum InfiltrationEntry { Skylight, AlphaMail, AccessCodes, Sewer }
 
+public sealed record PlanningPrepSelection(bool GlassCutterEnabled, bool PowerDrillsEnabled)
+{
+    public static PlanningPrepSelection AllEnabled { get; } = new(true, true);
+}
+
 public sealed record PlanningLootCandidate(
     string LootId, string Name, string MapId, LootType Type, int BagPercent, bool IsAccessible,
     int MinimumPlayers, bool IsBuyersRequest, int? KnownExactValue, int EstimatedMinValue,
@@ -17,7 +22,7 @@ public sealed record PlanningLootCandidate(
 }
 
 public sealed record PlanningLootCategorySummary(
-    string Name, int TotalCount, int AccessibleCount, int InaccessibleCount, int TotalBagPercent,
+    LootPlanningCategory Category, string Name, int TotalCount, int AccessibleCount, int InaccessibleCount, int TotalBagPercent,
     int KnownExactValue, int EstimatedMinValue, int EstimatedMaxValue);
 
 public sealed record HaulRecommendation(
@@ -53,8 +58,9 @@ public sealed record PlanningAnalysis(
 public static class HeistPlanningAnalyzer
 {
     public static PlanningAnalysis Analyze(IEnumerable<LootSpawnDefinition> definitions,
-        IEnumerable<LootSpawnState> states, int playerCount)
+        IEnumerable<LootSpawnState> states, int playerCount, PlanningPrepSelection? prepSelection = null)
     {
+        prepSelection ??= PlanningPrepSelection.AllEnabled;
         if (playerCount is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(playerCount));
         var definitionList = definitions.ToArray();
         var stateById = states.ToDictionary(state => state.SpawnId, StringComparer.Ordinal);
@@ -62,10 +68,14 @@ public static class HeistPlanningAnalyzer
             .Select(definition => CreateCandidate(definition, stateById[definition.Id], playerCount)).ToArray();
         var accessible = candidates.Where(item => item.IsAccessible).ToArray();
         var capacity = playerCount * 100;
-        var haul = Optimize(accessible.Where(item => item.Type != LootType.SafetyDepositBoxes), capacity);
+        var normalCandidates = accessible.Where(item => item.Type != LootType.SafetyDepositBoxes).ToArray();
+        var withGlassCutterHaul = Optimize(normalCandidates, capacity);
+        var withoutGlassCutterHaul = Optimize(normalCandidates.Where(item => item.RequiredPrep != OptionalPrep.GlassCutter), capacity);
+        var haul = prepSelection.GlassCutterEnabled ? withGlassCutterHaul : withoutGlassCutterHaul;
         var boxes = accessible.Where(item => item.Type == LootType.SafetyDepositBoxes).ToArray();
-        var drillsHaul = Optimize(accessible, capacity);
-        var selectedGlass = haul.SelectedLoot.Where(item => item.RequiredPrep == OptionalPrep.GlassCutter).ToArray();
+        var drillsScenarioHaul = Optimize(accessible, capacity);
+        var drillsHaul = prepSelection.PowerDrillsEnabled ? drillsScenarioHaul : haul;
+        var selectedGlass = withGlassCutterHaul.SelectedLoot.Where(item => item.RequiredPrep == OptionalPrep.GlassCutter).ToArray();
         var glass = PrepSummary("Glass Cutter", selectedGlass,
             items => items.Length == 0 ? PrepRecommendationLevel.NotRecommended : PrepRecommendationLevel.Required,
             items => items.Length == 0
@@ -81,9 +91,8 @@ public static class HeistPlanningAnalyzer
                 : haul.RemainingCapacityPercent >= 30 ? $"{haul.RemainingCapacityPercent}% spare capacity can hold one box."
                 : "Projected bags are already full or lack the 30% required for a box.");
         var entry = EntryRecommendationService.Recommend(haul);
-        var categories = candidates.GroupBy(item => LootEconomicsCatalog.Get(item.Type,
-                definitionList.First(definition => definition.Id == item.LootId).ZoneId).DisplayName)
-            .Select(group => new PlanningLootCategorySummary(group.Key, group.Count(), group.Count(x => x.IsAccessible),
+        var categories = candidates.GroupBy(item => LootPlanningCategories.For(item.Type))
+            .Select(group => new PlanningLootCategorySummary(group.Key, group.Key.DisplayName(), group.Count(), group.Count(x => x.IsAccessible),
                 group.Count(x => !x.IsAccessible), group.Sum(x => x.BagPercent), group.Sum(x => x.KnownExactValue ?? 0),
                 group.Where(x => x.IsEstimated).Sum(x => x.EstimatedMinValue), group.Where(x => x.IsEstimated).Sum(x => x.EstimatedMaxValue)))
             .OrderBy(item => item.Name).ToArray();

@@ -2,7 +2,8 @@ using GtaHeistPlanner.Core.Loot;
 
 namespace GtaHeistPlanner.Core.Planning;
 
-public sealed record LootCategorySummary(string Name, int Count, int MinValue, int MaxValue);
+public sealed record LootCategorySummary(
+    LootPlanningCategory Category, string Name, int Count, int MinValue, int MaxValue);
 
 public sealed record LootPlanningSummary(
     int PlayerCount,
@@ -39,9 +40,10 @@ public static class LootPlanningSummaryCalculator
         }).ToList();
 
         var categories = entries
-            .GroupBy(entry => entry.Economics.DisplayName)
+            .GroupBy(entry => LootPlanningCategories.For(entry.Definition.Type))
             .Select(group => new LootCategorySummary(
                 group.Key,
+                group.Key.DisplayName(),
                 group.Count(),
                 group.Sum(entry => entry.State.ScopedValue ?? entry.Economics.MinValue),
                 group.Sum(entry => entry.State.ScopedValue ?? entry.Economics.MaxValue)))

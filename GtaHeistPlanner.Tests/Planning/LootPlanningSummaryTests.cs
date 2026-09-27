@@ -33,4 +33,29 @@ public sealed class LootPlanningSummaryTests
         Assert.Equal(1, summary.GlassCutterCount);
         Assert.Equal(0, summary.PowerDrillsCount);
     }
+
+    [Fact]
+    public void SummaryGroupsCrispPaintingWithNormalPainting()
+    {
+        var definitions = new[]
+        {
+            new LootSpawnDefinition("normal", "main-floor", "Painting", LootType.Painting, .1, .1),
+            new LootSpawnDefinition("crisp", "upper-floor", "Crisp Gallery Painting", LootType.Painting,
+                .2, .2, LootZoneCatalog.CrispGalleryId),
+        };
+        var states = definitions.Select(definition => new LootSpawnState
+        {
+            SpawnId = definition.Id,
+            IsPresent = true,
+        });
+
+        var summary = LootPlanningSummaryCalculator.Calculate(definitions, states, 2);
+
+        var category = Assert.Single(summary.Categories);
+        Assert.Equal(LootPlanningCategory.Painting, category.Category);
+        Assert.Equal("Painting", category.Name);
+        Assert.Equal(2, category.Count);
+        Assert.Equal(242_000, category.MinValue);
+        Assert.Equal(284_000, category.MaxValue);
+    }
 }
