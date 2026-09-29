@@ -430,7 +430,7 @@
       "id": "upper-floor-loot-06",
       "mapId": "upper-floor",
       "name": "Upper egg",
-      "type": "CoquardJewelry",
+      "type": "FertilityStatue",
       "x": 0.7745824877865464,
       "y": 0.4312,
       "zoneId": null
